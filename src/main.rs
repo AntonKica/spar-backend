@@ -4,8 +4,10 @@ use actix_web::{get, App, HttpServer};
 use actix_web::web::{scope, Path};
 use serde::{Serialize};
 use sqlx::{Pool, Postgres};
+use strum::IntoEnumIterator;
 use spar_backend::{create_connection};
-use spar_backend::model::{BusinessProcessModel, RoleModel};
+use spar_backend::enums::ModuleType;
+use spar_backend::model::{ApplicationCreateModel, ApplicationModel, BusinessProcessModel, RoleModel};
 use spar_backend::response::EnumResponse;
 
 #[derive(Serialize)]
@@ -41,6 +43,25 @@ impl RoleResponse {
             code: record.code,
             name: record.name,
             description: record.description,
+        }
+    }
+}
+
+#[derive(Serialize)]
+struct ApplicationResponse {
+    code: String,
+    name: String,
+    description: String,
+    module_type: EnumResponse
+}
+
+impl ApplicationResponse {
+    fn filter_db_record(record: ApplicationModel) -> ApplicationResponse {
+        ApplicationResponse {
+            code: record.code,
+            name: record.name,
+            description: record.description,
+            module_type: EnumResponse::from(record.module_type),
         }
     }
 }
@@ -168,11 +189,65 @@ pub async fn role_get(
     }
 }
 
+#[get("/application/")]
+pub async fn application_list(
+    data: web::Data<AppState>,
+) -> impl Responder {
+    let query_result =  sqlx::query_as!(
+        ApplicationModel,
+        r#"SELECT * FROM application"#,
+    )
+        .fetch_all(&data.db)
+        .await;
+
+    match query_result {
+        Ok(res) => {
+            let data: Vec<ApplicationResponse> = res.into_iter().map(ApplicationResponse::filter_db_record).collect();
+            HttpResponse::Ok().json(serde_json::json!({ "status": "ok", "data": data }))
+        }
+        Err(err) => {
+            let message = format!("{:?}", err);
+            HttpResponse::Ok().json(serde_json::json!({ "status": "failed", "error": message}))
+        }
+    }
+}
+
+#[get("/application/{code}")]
+pub async fn application_get(
+    data: web::Data<AppState>,
+    path: Path<String>
+) -> impl Responder {
+    let code = path.into_inner();
+    let query_result =  sqlx::query_as!(
+        ApplicationModel,
+        r#"SELECT * FROM application"#,
+    )
+        .fetch_one(&data.db)
+        .await;
+
+    match query_result {
+        Ok(res) => {
+            HttpResponse::Ok().json(serde_json::json!({ "status": "ok", "data": ApplicationResponse::filter_db_record(res) }))
+        }
+        Err(err) => {
+            let message = format!("{:?}", err);
+            HttpResponse::Ok().json(serde_json::json!({ "status": "failed", "error": message}))
+        }
+    }
+}
+
+#[get("/enum/module-type/")]
+pub async fn enum_module_type_list(
+    data: web::Data<AppState>,
+) -> impl Responder {
+    let data: Vec<EnumResponse> = ModuleType::iter().filter(|mt| !matches!(mt, ModuleType::UNKNOWN)).map(EnumResponse::from).collect();
+    HttpResponse::Ok().json(serde_json::json!({ "status": "ok", "data": data }))
+}
+
 
 pub struct AppState {
     db: Pool<Postgres>,
 }
-
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     let db = create_connection().await;
@@ -187,6 +262,9 @@ async fn main() -> std::io::Result<()> {
                     .service(business_process_get_assigned_roles)
                     .service(role_list)
                     .service(role_get)
+                    .service(application_list)
+                    .service(application_get)
+                    .service(enum_module_type_list)
             )
     })
         .bind(("127.0.0.1", 8080))?

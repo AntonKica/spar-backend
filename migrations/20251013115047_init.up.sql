@@ -13,3 +13,9 @@ CREATE TABLE business_process__role(
     business_process_code CHAR(7) REFERENCES business_process(code),
     role_code CHAR(8) REFERENCES role(code)
 );
+
+CREATE TABLE application(code CHAR(9) NOT NULL PRIMARY KEY,
+                         name VARCHAR(80) NOT NULL,
+                         description VARCHAR(400) NOT NULL,
+                         module_type INTEGER NOT NULL
+);

@@ -1,50 +1,8 @@
 use sqlx::{Pool, Postgres};
+use crate::enums::{BusinessProcessType, ModuleType};
 use crate::response::EnumResponse;
 
-#[repr(i32)]
-#[derive(Copy, Clone)]
-pub enum BusinessProcessType {
-    UNKNOWN = -1,
-    PRIMARY = 0,
-    SUPPORT,
-}
-
-impl From<BusinessProcessType> for EnumResponse {
-    fn from(value: BusinessProcessType) -> Self {
-        match value {
-            BusinessProcessType::SUPPORT => {
-                EnumResponse {
-                    code: BusinessProcessType::SUPPORT as i32,
-                    name: "podporný".to_owned()
-                }
-            }
-            BusinessProcessType::PRIMARY => {
-                EnumResponse {
-                    code: BusinessProcessType::PRIMARY as i32,
-                    name: "primárny".to_owned()
-                }
-            }
-            BusinessProcessType::UNKNOWN => {
-                EnumResponse {
-                    code: BusinessProcessType::UNKNOWN as i32,
-                    name: "neznámy".to_owned()
-                }
-            }
-        }
-    }
-}
-
-impl From<i32> for BusinessProcessType {
-    fn from(value: i32) -> Self {
-        match value {
-            0 => BusinessProcessType::PRIMARY,
-            1 => BusinessProcessType::SUPPORT,
-            _ => BusinessProcessType::UNKNOWN
-        }
-    }
-}
-
-#[derive(sqlx::FromRow)]
+  #[derive(sqlx::FromRow)]
 pub struct BusinessProcessModel {
     pub code: String,
     pub name: String,
@@ -74,6 +32,18 @@ pub struct RoleCreateModel {
 pub struct BusinessProcessRoleCreateModel {
     pub business_process_code: String,
     pub role_code: String,
+}
+
+pub struct ApplicationModel {
+    pub code: String,
+    pub name: String,
+    pub description: String,
+    pub module_type: ModuleType
+}
+pub struct ApplicationCreateModel {
+    pub name: String,
+    pub description: String,
+    pub module_type: ModuleType
 }
 
 async fn next_code_for(table: &str, code: &str, num_digits: u32, db: &Pool<Postgres>) -> String {
@@ -132,6 +102,22 @@ impl RoleCreateModel {
             .execute(db)
             .await?;
         Ok((code))
+    }
+}
+
+impl ApplicationCreateModel {
+    pub async fn create(&self, db: &Pool<Postgres>) -> Result<(String), sqlx::Error> {
+        let code = next_code_for("application", "APP", 5, db).await;
+        sqlx::query!(
+        r#"INSERT INTO application(code, name, description, module_type) VALUES ($1,$2,$3,$4)"#,
+        code,
+        self.name,
+        self.description,
+        self.module_type as i32,
+        )
+            .execute(db)
+            .await?;
+        Ok(code)
     }
 }
 
