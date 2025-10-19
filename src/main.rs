@@ -52,7 +52,9 @@ struct ApplicationResponse {
     code: String,
     name: String,
     description: String,
-    module_type: EnumResponse
+    module_type: EnumResponse,
+    application_user: String,
+    responsible: String,
 }
 
 impl ApplicationResponse {
@@ -62,6 +64,8 @@ impl ApplicationResponse {
             name: record.name,
             description: record.description,
             module_type: EnumResponse::from(record.module_type),
+            application_user: record.application_user,
+            responsible: record.responsible,
         }
     }
 }

@@ -38,12 +38,25 @@ pub struct ApplicationModel {
     pub code: String,
     pub name: String,
     pub description: String,
-    pub module_type: ModuleType
+    pub module_type: ModuleType,
+    pub application_user: String,
+    pub responsible: String,
 }
 pub struct ApplicationCreateModel {
     pub name: String,
     pub description: String,
-    pub module_type: ModuleType
+    pub module_type: ModuleType,
+    pub application_user: String,
+    pub responsible: String,
+}
+
+pub struct ITSystemCreateModel {
+    pub name: String,
+    pub description: String,
+    pub module_type: ModuleType,
+    pub count: i32,
+    pub application_user: String,
+    pub responsible: String,
 }
 
 async fn next_code_for(table: &str, code: &str, num_digits: u32, db: &Pool<Postgres>) -> String {
@@ -109,11 +122,32 @@ impl ApplicationCreateModel {
     pub async fn create(&self, db: &Pool<Postgres>) -> Result<(String), sqlx::Error> {
         let code = next_code_for("application", "APP", 5, db).await;
         sqlx::query!(
-        r#"INSERT INTO application(code, name, description, module_type) VALUES ($1,$2,$3,$4)"#,
+        r#"INSERT INTO application(code, name, description, module_type, responsible, application_user) VALUES ($1,$2,$3,$4,$5,$6)"#,
         code,
         self.name,
         self.description,
         self.module_type as i32,
+            self.responsible,
+            self.application_user
+        )
+            .execute(db)
+            .await?;
+        Ok(code)
+    }
+}
+
+impl ITSystemCreateModel {
+    pub async fn create(&self, db: &Pool<Postgres>) -> Result<(String), sqlx::Error> {
+        let code = next_code_for("it_system", "ITS", 5, db).await;
+        sqlx::query!(
+        r#"INSERT INTO it_system(code, name, description, module_type, count, responsible, application_user) VALUES ($1,$2,$3,$4,$5,$6,$7)"#,
+        code,
+        self.name,
+        self.description,
+        self.module_type as i32,
+            self.count,
+            self.responsible,
+            self.application_user
         )
             .execute(db)
             .await?;

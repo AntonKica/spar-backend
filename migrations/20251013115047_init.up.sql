@@ -17,5 +17,16 @@ CREATE TABLE business_process__role(
 CREATE TABLE application(code CHAR(9) NOT NULL PRIMARY KEY,
                          name VARCHAR(80) NOT NULL,
                          description VARCHAR(400) NOT NULL,
-                         module_type INTEGER NOT NULL
+                         module_type INTEGER NOT NULL,
+                         responsible CHAR(7) NOT NULL REFERENCES role(code),
+                         application_user CHAR(7) NOT NULL REFERENCES role(code)
+);
+
+CREATE TABLE it_system(code CHAR(9) NOT NULL PRIMARY KEY,
+                         name VARCHAR(80) NOT NULL,
+                         description VARCHAR(400) NOT NULL,
+                         module_type INTEGER NOT NULL,
+                         count INTEGER NOT NULL,
+                         responsible CHAR(7) NOT NULL REFERENCES role(code),
+                         application_user CHAR(7) NOT NULL REFERENCES role(code)
 );

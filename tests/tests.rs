@@ -1,6 +1,6 @@
 use spar_backend::create_connection;
-use spar_backend::enums::ModuleType;
-use spar_backend::model::{set_responsible, ApplicationCreateModel, BusinessProcessCreateModel, BusinessProcessRoleCreateModel , RoleCreateModel};
+use spar_backend::enums::{BusinessProcessType, ModuleType};
+use spar_backend::model::{set_responsible, ApplicationCreateModel, BusinessProcessCreateModel, BusinessProcessRoleCreateModel, ITSystemCreateModel, RoleCreateModel};
 
 #[tokio::test]
 async fn populate_db() {
@@ -8,8 +8,9 @@ async fn populate_db() {
 
     sqlx::query("DELETE FROM business_process__role").execute(&db).await.unwrap();
     sqlx::query("DELETE FROM business_process").execute(&db).await.unwrap();
+    sqlx::query("DELETE FROM application").execute(&db).await.unwrap();
+    sqlx::query("DELETE FROM it_system").execute(&db).await.unwrap();
     sqlx::query("DELETE FROM role").execute(&db).await.unwrap();
-    sqlx::query("DELETE FROM applications").execute(&db).await.unwrap();
 
     ///
     let bp_product_development =
@@ -228,14 +229,108 @@ async fn populate_db() {
     }.assign(&db).await.unwrap();
     // bp_human_resources.assign_role(&role_programmers, &db).await.unwrap();
 
+
+    let role_everyone  = RoleCreateModel {
+        name: "každý".to_owned(),
+        description: "všetci zamestnanci".to_owned(),
+    }.create(&db).await.unwrap();
+    let role_it_services  = RoleCreateModel {
+        name: "IT služby".to_owned(),
+        description: "ľudia prevádzkujúci naše IT služby".to_owned(),
+    }.create(&db).await.unwrap();
+    let role_administrator  = RoleCreateModel {
+        name: "administrátor".to_owned(),
+        description: "ľudia prevádzkujúci naše IT služby".to_owned(),
+    }.create(&db).await.unwrap();
+    let role_production_department  = RoleCreateModel {
+        name: "produkčné oddelenie".to_owned(),
+        description: "ľudia prevádzkujúci a spravujúci produkčné prostredie".to_owned(),
+    }.create(&db).await.unwrap();
+
     let app_its = ApplicationCreateModel {
         name: "Redmine".to_owned(),
         description: "ITS systém".to_owned(),
         module_type: ModuleType::APP_6_GENERAL_SOFTWARE.to_owned(),
+        application_user: role_everyone.clone(),
+        responsible: role_administrator.clone(),
     }.create(&db).await.unwrap();
     let app_chat = ApplicationCreateModel {
         name: "Rocket Chat".to_owned(),
         description: "komunikačný system".to_owned(),
         module_type: ModuleType::APP_6_GENERAL_SOFTWARE.to_owned(),
+        application_user: role_everyone.clone(),
+        responsible: role_administrator.clone(),
+    }.create(&db).await.unwrap();
+    let app_word_processor = ApplicationCreateModel {
+        name: "Libre Office".to_owned(),
+        description: "kancelársky balík".to_owned(),
+        module_type: ModuleType::APP_1_1_OFFICE_PRODUCTS.to_owned(),
+        application_user: role_everyone.clone(),
+        responsible: role_administrator.clone(),
+    }.create(&db).await.unwrap();
+
+    let it_system_router = ITSystemCreateModel {
+        name: "externý router".to_owned(),
+        description: "zabezpečuje komunikáciu medzi internetom a interným prostredím".to_owned(),
+        module_type: ModuleType::NET_3_1_ROUTERS_AND_SWITCHES.to_owned(),
+        count: 1,
+        application_user: role_administrator.clone(),
+        responsible: role_administrator.clone(),
+    }.create(&db).await.unwrap();
+    let it_system_external_firewall = ITSystemCreateModel {
+        name: "firewall".to_owned(),
+        description: "zabezpečuje bezpečnú role_administrator medzi internými systémami a internetom".to_owned(),
+        module_type: ModuleType::NET_3_1_ROUTERS_AND_SWITCHES.to_owned(),
+        count: 1,
+        application_user: role_administrator.clone(),
+        responsible: role_administrator.clone(),
+    }.create(&db).await.unwrap();
+    let it_system_internal_switch = ITSystemCreateModel {
+        name: "interný switch".to_owned(),
+        description: "zodpovedný za tok údajov medzi internou sieťou a internetom".to_owned(),
+        module_type: ModuleType::NET_3_1_ROUTERS_AND_SWITCHES.to_owned(),
+        count: 1,
+        application_user: role_administrator.clone(),
+        responsible: role_administrator.clone(),
+    }.create(&db).await.unwrap();
+    let it_system_print_server = ITSystemCreateModel {
+        name: "tlačiareň".to_owned(),
+        description: "kancelársky balík".to_owned(),
+        module_type: ModuleType::SYS_1_2_2_WINDOWS_SERVER_2012.to_owned(),
+        count: 1,
+        application_user: role_everyone.clone(),
+        responsible: role_administrator.clone(),
+    }.create(&db).await.unwrap();
+    let it_system_virtual_server = ITSystemCreateModel {
+        name: "virtuálny server".to_owned(),
+        description: "hosťuje vyše 20 virtuálnych serverov za použitia virtualizačného SW".to_owned(),
+        module_type: ModuleType::SYS_1_3_LINUX_AND_UNIX_SERVERS.to_owned(),
+        count: 2,
+        application_user: role_administrator.clone(),
+        responsible: role_administrator.clone(),
+    }.create(&db).await.unwrap();
+    let it_system_production_router = ITSystemCreateModel {
+        name: "production router".to_owned(),
+        description: "zabezpečuje komunikáciu medzi interným prostredím a produkčným prostredím".to_owned(),
+        module_type: ModuleType::NET_3_1_ROUTERS_AND_SWITCHES.to_owned(),
+        count: 2,
+        application_user: role_administrator.clone(),
+        responsible: role_administrator.clone(),
+    }.create(&db).await.unwrap();
+    let it_system_production_switch = ITSystemCreateModel {
+        name: "production switch".to_owned(),
+        description: "zodpovedný za tok údajov medzi produkčným prostredím a internou sieťou".to_owned(),
+        module_type: ModuleType::NET_3_1_ROUTERS_AND_SWITCHES.to_owned(),
+        count: 1,
+        application_user: role_administrator.clone(),
+        responsible: role_administrator.clone(),
+    }.create(&db).await.unwrap();
+    let it_system_production_server = ITSystemCreateModel {
+        name: "centrálny produkčný server".to_owned(),
+        description: "spracováva všetky dáta".to_owned(),
+        module_type: ModuleType::SYS_1_3_LINUX_AND_UNIX_SERVERS.to_owned(),
+        count: 2,
+        application_user: role_production_department.clone(),
+        responsible: role_administrator.clone(),
     }.create(&db).await.unwrap();
 }
