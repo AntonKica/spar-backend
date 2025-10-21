@@ -7,7 +7,7 @@ use sqlx::{Pool, Postgres};
 use strum::IntoEnumIterator;
 use spar_backend::{create_connection};
 use spar_backend::enums::ModuleType;
-use spar_backend::model::{ApplicationCreateModel, ApplicationModel, BusinessProcessModel, RoleModel};
+use spar_backend::model::{ApplicationCreateModel, ApplicationModel, BusinessProcessModel, ITSystemCreateModel, RoleModel, ITSystemModel};
 use spar_backend::response::EnumResponse;
 
 #[derive(Serialize)]
@@ -70,6 +70,27 @@ impl ApplicationResponse {
     }
 }
 
+#[derive(Serialize)]
+struct ITSystemResponse {
+    code: String,
+    name: String,
+    description: String,
+    count: i32,
+    module_type: EnumResponse,
+    application_user: String,
+    responsible: String,
+}
+
+impl ITSystemResponse {
+    fn filter_db_record(record: ITSystemModel) -> ITSystemResponse {
+        ITSystemResponse {
+            code: record.code,
+            name: record.name,
+            description: record.description,
+            count: record.count,
+            module_type: EnumResponse::from(record.module_type),
+            application_user: record.application_user,
+            responsible: record.responsible, } } }
 #[get("/business-process/")]
 async fn business_process_list(
     data: web::Data<AppState>
@@ -240,6 +261,53 @@ pub async fn application_get(
     }
 }
 
+#[get("/it-system/")]
+pub async fn it_system_list(
+    data: web::Data<AppState>,
+) -> impl Responder {
+    let query_result =  sqlx::query_as!(
+        ITSystemModel,
+        r#"SELECT * FROM it_system"#,
+    )
+        .fetch_all(&data.db)
+        .await;
+
+    match query_result {
+        Ok(res) => {
+            let data: Vec<ITSystemResponse> = res.into_iter().map(ITSystemResponse::filter_db_record).collect();
+            HttpResponse::Ok().json(serde_json::json!({ "status": "ok", "data": data }))
+        }
+        Err(err) => {
+            let message = format!("{:?}", err);
+            HttpResponse::Ok().json(serde_json::json!({ "status": "failed", "error": message}))
+        }
+    }
+}
+
+#[get("/it-system/{code}")]
+pub async fn it_system_get(
+    data: web::Data<AppState>,
+    path: Path<String>
+) -> impl Responder {
+    let code = path.into_inner();
+    let query_result =  sqlx::query_as!(
+        ITSystemModel,
+        r#"SELECT * FROM it_system"#,
+    )
+        .fetch_one(&data.db)
+        .await;
+
+    match query_result {
+        Ok(res) => {
+            HttpResponse::Ok().json(serde_json::json!({ "status": "ok", "data": ITSystemResponse::filter_db_record(res) }))
+        }
+        Err(err) => {
+            let message = format!("{:?}", err);
+            HttpResponse::Ok().json(serde_json::json!({ "status": "failed", "error": message}))
+        }
+    }
+}
+
 #[get("/enum/module-type/")]
 pub async fn enum_module_type_list(
     data: web::Data<AppState>,
@@ -268,6 +336,8 @@ async fn main() -> std::io::Result<()> {
                     .service(role_get)
                     .service(application_list)
                     .service(application_get)
+                    .service(it_system_list)
+                    .service(it_system_get)
                     .service(enum_module_type_list)
             )
     })

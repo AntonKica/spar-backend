@@ -2,7 +2,6 @@ use sqlx::{Pool, Postgres};
 use crate::enums::{BusinessProcessType, ModuleType};
 use crate::response::EnumResponse;
 
-  #[derive(sqlx::FromRow)]
 pub struct BusinessProcessModel {
     pub code: String,
     pub name: String,
@@ -11,7 +10,6 @@ pub struct BusinessProcessModel {
     pub responsible: Option<String>,
 }
 
-//#[derive()]
 pub struct BusinessProcessCreateModel {
     pub name: String,
     pub description: String,
@@ -50,6 +48,16 @@ pub struct ApplicationCreateModel {
     pub responsible: String,
 }
 
+pub struct ITSystemModel {
+    pub code: String,
+    pub name: String,
+    pub description: String,
+    pub module_type: ModuleType,
+    pub count: i32,
+    pub application_user: String,
+    pub responsible: String,
+}
+
 pub struct ITSystemCreateModel {
     pub name: String,
     pub description: String,
@@ -77,7 +85,7 @@ async fn next_code_for(table: &str, code: &str, num_digits: u32, db: &Pool<Postg
 }
 
 impl BusinessProcessCreateModel {
-    pub async fn create(&self, db: &Pool<Postgres>) -> Result<(String), sqlx::Error> {
+    pub async fn create(&self, db: &Pool<Postgres>) -> Result<String, sqlx::Error> {
         let code = next_code_for("business_process", "BP", 4, db).await;
         sqlx::query!(
         r#"INSERT INTO business_process(code, name, description, process_type) VALUES ($1,$2,$3,$4)"#,
@@ -104,7 +112,7 @@ impl BusinessProcessRoleCreateModel {
 }
 
 impl RoleCreateModel {
-    pub async fn create(&self, db: &Pool<Postgres>) -> Result<(String), sqlx::Error> {
+    pub async fn create(&self, db: &Pool<Postgres>) -> Result<String, sqlx::Error> {
         let code = next_code_for("role", "RL", 4, db).await;
         sqlx::query!(
         r#"INSERT INTO role(code, name, description) VALUES ($1,$2,$3)"#,
@@ -114,12 +122,12 @@ impl RoleCreateModel {
         )
             .execute(db)
             .await?;
-        Ok((code))
+        Ok(code)
     }
 }
 
 impl ApplicationCreateModel {
-    pub async fn create(&self, db: &Pool<Postgres>) -> Result<(String), sqlx::Error> {
+    pub async fn create(&self, db: &Pool<Postgres>) -> Result<String, sqlx::Error> {
         let code = next_code_for("application", "APP", 5, db).await;
         sqlx::query!(
         r#"INSERT INTO application(code, name, description, module_type, responsible, application_user) VALUES ($1,$2,$3,$4,$5,$6)"#,
@@ -137,7 +145,7 @@ impl ApplicationCreateModel {
 }
 
 impl ITSystemCreateModel {
-    pub async fn create(&self, db: &Pool<Postgres>) -> Result<(String), sqlx::Error> {
+    pub async fn create(&self, db: &Pool<Postgres>) -> Result<String, sqlx::Error> {
         let code = next_code_for("it_system", "ITS", 5, db).await;
         sqlx::query!(
         r#"INSERT INTO it_system(code, name, description, module_type, count, responsible, application_user) VALUES ($1,$2,$3,$4,$5,$6,$7)"#,
