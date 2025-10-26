@@ -7,7 +7,7 @@ use sqlx::{Pool, Postgres};
 use strum::IntoEnumIterator;
 use spar_backend::{create_connection};
 use spar_backend::enums::ModuleType;
-use spar_backend::model::{ApplicationCreateModel, ApplicationModel, BusinessProcessModel, ITSystemCreateModel, RoleModel, ITSystemModel};
+use spar_backend::model::{ApplicationModel, BusinessProcessModel, ITSystemCreateModel, RoleModel, ITSystemModel, BusinessProcessApplicationCreateModel, BusinessProcessApplicationModel};
 use spar_backend::response::EnumResponse;
 
 #[derive(Serialize)]
@@ -90,7 +90,24 @@ impl ITSystemResponse {
             count: record.count,
             module_type: EnumResponse::from(record.module_type),
             application_user: record.application_user,
-            responsible: record.responsible, } } }
+            responsible: record.responsible,
+        }
+    }
+}
+#[derive(Serialize)]
+struct BusinessProcessApplicationResponse {
+    business_process_code: String,
+    application_code: String,
+}
+
+impl BusinessProcessApplicationResponse {
+    fn filter_db_record(record: BusinessProcessApplicationModel) -> BusinessProcessApplicationResponse {
+        BusinessProcessApplicationResponse {
+            business_process_code: record.business_process_code,
+            application_code: record.application_code,
+        }
+    }
+}
 #[get("/business-process/")]
 async fn business_process_list(
     data: web::Data<AppState>
@@ -316,6 +333,28 @@ pub async fn enum_module_type_list(
     HttpResponse::Ok().json(serde_json::json!({ "status": "ok", "data": data }))
 }
 
+#[get("/business-process-application/")]
+pub async fn business_process_application_list(
+    data: web::Data<AppState>,
+) -> impl Responder {
+    let query_result =  sqlx::query_as!(
+        BusinessProcessApplicationModel,
+        r#"SELECT * FROM business_process__application"#,
+    )
+        .fetch_all(&data.db)
+        .await;
+
+    match query_result {
+        Ok(res) => {
+            let data: Vec<BusinessProcessApplicationResponse> = res.into_iter().map(BusinessProcessApplicationResponse::filter_db_record).collect();
+            HttpResponse::Ok().json(serde_json::json!({ "status": "ok", "data": data }))
+        }
+        Err(err) => {
+            let message = format!("{:?}", err);
+            HttpResponse::Ok().json(serde_json::json!({ "status": "failed", "error": message}))
+        }
+    }
+}
 
 pub struct AppState {
     db: Pool<Postgres>,
@@ -339,6 +378,7 @@ async fn main() -> std::io::Result<()> {
                     .service(it_system_list)
                     .service(it_system_get)
                     .service(enum_module_type_list)
+                    .service(business_process_application_list)
             )
     })
         .bind(("127.0.0.1", 8080))?

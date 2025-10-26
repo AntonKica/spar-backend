@@ -1,3 +1,4 @@
+DROP TABLE IF EXISTS business_process__application;
 DROP TABLE IF EXISTS business_process__role;
 DROP TABLE IF EXISTS business_process;
 DROP TABLE IF EXISTS application;

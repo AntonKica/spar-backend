@@ -1,11 +1,12 @@
 use spar_backend::create_connection;
 use spar_backend::enums::{BusinessProcessType, ModuleType};
-use spar_backend::model::{set_responsible, ApplicationCreateModel, BusinessProcessCreateModel, BusinessProcessRoleCreateModel, ITSystemCreateModel, RoleCreateModel};
+use spar_backend::model::{set_responsible, ApplicationCreateModel, BusinessProcessApplicationCreateModel, BusinessProcessCreateModel, BusinessProcessRoleCreateModel, ITSystemCreateModel, RoleCreateModel};
 
 #[tokio::test]
 async fn populate_db() {
     let db = create_connection().await;
 
+    sqlx::query("DELETE FROM business_process__application").execute(&db).await.unwrap();
     sqlx::query("DELETE FROM business_process__role").execute(&db).await.unwrap();
     sqlx::query("DELETE FROM business_process").execute(&db).await.unwrap();
     sqlx::query("DELETE FROM application").execute(&db).await.unwrap();
@@ -268,6 +269,43 @@ async fn populate_db() {
         application_user: role_everyone.clone(),
         responsible: role_administrator.clone(),
     }.create(&db).await.unwrap();
+
+    BusinessProcessApplicationCreateModel {
+        business_process_code: bp_product_development.clone(),
+        application_code: app_its.clone()
+    }.assign(&db).await.unwrap();
+    BusinessProcessApplicationCreateModel {
+        business_process_code: bp_product_development.clone(),
+        application_code: app_chat.clone()
+    }.assign(&db).await.unwrap();
+    BusinessProcessApplicationCreateModel {
+        business_process_code: bp_product_development.clone(),
+        application_code: app_chat.clone()
+    }.assign(&db).await.unwrap();
+
+    BusinessProcessApplicationCreateModel {
+        business_process_code: bp_production.clone(),
+        application_code: app_its.clone()
+    }.assign(&db).await.unwrap();
+    BusinessProcessApplicationCreateModel {
+        business_process_code: bp_production.clone(),
+        application_code: app_chat.clone()
+    }.assign(&db).await.unwrap();
+
+    for bp in vec![bp_support, bp_hr, bp_sales] {
+        BusinessProcessApplicationCreateModel {
+            business_process_code: bp.clone(),
+            application_code: app_chat.clone()
+        }.assign(&db).await.unwrap();
+        BusinessProcessApplicationCreateModel {
+            business_process_code: bp.clone(),
+            application_code: app_word_processor.clone()
+        }.assign(&db).await.unwrap();
+        BusinessProcessApplicationCreateModel {
+            business_process_code: bp.clone(),
+            application_code: app_its.clone()
+        }.assign(&db).await.unwrap();
+    }
 
     let it_system_router = ITSystemCreateModel {
         name: "externý router".to_owned(),

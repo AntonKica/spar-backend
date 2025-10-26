@@ -48,6 +48,15 @@ pub struct ApplicationCreateModel {
     pub responsible: String,
 }
 
+pub struct BusinessProcessApplicationModel {
+    pub business_process_code: String,
+    pub application_code: String,
+}
+pub struct BusinessProcessApplicationCreateModel {
+    pub business_process_code: String,
+    pub application_code: String,
+}
+
 pub struct ITSystemModel {
     pub code: String,
     pub name: String,
@@ -160,6 +169,18 @@ impl ITSystemCreateModel {
             .execute(db)
             .await?;
         Ok(code)
+    }
+}
+
+impl BusinessProcessApplicationCreateModel {
+    pub async fn assign(&self, db: &Pool<Postgres>) -> Result<(), sqlx::Error> {
+        sqlx::query!(r#"INSERT INTO business_process__application(business_process_code, application_code) VALUES ($1,$2)"#,
+        self.business_process_code,
+        self.application_code,
+        )
+            .execute(db)
+            .await?;
+        Ok(())
     }
 }
 
