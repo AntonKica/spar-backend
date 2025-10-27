@@ -333,6 +333,55 @@ pub async fn enum_module_type_list(
     HttpResponse::Ok().json(serde_json::json!({ "status": "ok", "data": data }))
 }
 
+#[derive(Serialize)]
+pub struct EnumCodeResponse {
+    pub code: String,
+    pub name: String,
+}
+#[get("/enum/bsi-it-grundschutz-module/")]
+pub async fn bsi_it_grundschutz_module(
+    data: web::Data<AppState>,
+) -> impl Responder {
+    let query_result =  sqlx::query_as!(
+        EnumCodeResponse,
+        r#"SELECT * FROM it_grundschutz_module"#,
+    )
+        .fetch_all(&data.db)
+        .await;
+
+    match query_result {
+        Ok(res) => {
+            HttpResponse::Ok().json(serde_json::json!({ "status": "ok", "data": res }))
+        }
+        Err(err) => {
+            let message = format!("{:?}", err);
+            HttpResponse::Ok().json(serde_json::json!({ "status": "failed", "error": message}))
+        }
+    }
+}
+
+#[get("/enum/bsi-it-grundschutz-elementary-threat/")]
+pub async fn bsi_it_grundschutz_elementary_threat(
+    data: web::Data<AppState>,
+) -> impl Responder {
+    let query_result =  sqlx::query_as!(
+        EnumCodeResponse,
+        r#"SELECT * FROM it_grundschutz_elementary_threat"#,
+    )
+        .fetch_all(&data.db)
+        .await;
+
+    match query_result {
+        Ok(res) => {
+            HttpResponse::Ok().json(serde_json::json!({ "status": "ok", "data": res }))
+        }
+        Err(err) => {
+            let message = format!("{:?}", err);
+            HttpResponse::Ok().json(serde_json::json!({ "status": "failed", "error": message}))
+        }
+    }
+}
+
 #[get("/business-process-application/")]
 pub async fn business_process_application_list(
     data: web::Data<AppState>,
@@ -378,6 +427,8 @@ async fn main() -> std::io::Result<()> {
                     .service(it_system_list)
                     .service(it_system_get)
                     .service(enum_module_type_list)
+                    .service(bsi_it_grundschutz_module)
+                    .service(bsi_it_grundschutz_elementary_threat)
                     .service(business_process_application_list)
             )
     })
