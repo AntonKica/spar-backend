@@ -45,6 +45,57 @@ impl From<i32> for BusinessProcessType {
 }
 
 #[repr(i32)]
+#[derive(Copy, Clone)]
+pub enum ProtectionRequirementType {
+    UNKNOWN = -1,
+    LOW = 0,
+    MEDIUM,
+    HIGH,
+}
+
+impl From<ProtectionRequirementType> for EnumResponse {
+    fn from(value: ProtectionRequirementType) -> Self {
+        match value {
+            ProtectionRequirementType::LOW => {
+                EnumResponse {
+                    code: ProtectionRequirementType::LOW as i32,
+                    name: "nízka".to_owned()
+                }
+            }
+            ProtectionRequirementType::MEDIUM => {
+                EnumResponse {
+                    code: ProtectionRequirementType::MEDIUM as i32,
+                    name: "stredná".to_owned()
+                }
+            }
+            ProtectionRequirementType::HIGH => {
+                EnumResponse {
+                    code: BusinessProcessType::PRIMARY as i32,
+                    name: "vysoká".to_owned()
+                }
+            }
+            ProtectionRequirementType::UNKNOWN => {
+                EnumResponse {
+                    code: ProtectionRequirementType::UNKNOWN as i32,
+                    name: "neznáma".to_owned()
+                }
+            }
+        }
+    }
+}
+
+impl From<i32> for ProtectionRequirementType {
+    fn from(value: i32) -> Self {
+        match value {
+            0 => ProtectionRequirementType::LOW,
+            1 => ProtectionRequirementType::MEDIUM,
+            2 => ProtectionRequirementType::HIGH,
+            _ => ProtectionRequirementType::UNKNOWN
+        }
+    }
+}
+
+#[repr(i32)]
 #[derive(Copy, Clone, EnumIter)]
 pub enum ModuleType {
     UNKNOWN = -1,
