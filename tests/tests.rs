@@ -1,7 +1,30 @@
 use spar_backend::create_connection;
 use spar_backend::enums::{BusinessProcessType, ModuleType};
-use spar_backend::model::{set_responsible, ApplicationCreateModel, BusinessProcessApplicationCreateModel, BusinessProcessCreateModel, BusinessProcessRoleCreateModel, ITSystemCreateModel, RoleCreateModel};
+use spar_backend::model::{set_responsible, ApplicationCreateModel, AssetCreateModel, BusinessProcessApplicationCreateModel, BusinessProcessCreateModel, BusinessProcessRoleCreateModel, ITSystemCreateModel, RoleCreateModel};
 
+#[tokio::test]
+async fn create_dummy_assets() {
+    let db = create_connection().await;
+    sqlx::query("DELETE FROM asset").execute(&db).await.unwrap();
+    
+    AssetCreateModel {
+        name: "dummy virtualizačný server".to_owned(),
+        description: "bežia tu dev aplikáie".to_owned(),
+        responsible: "IT administrátor".to_owned(),
+    }.create(&db).await.unwrap();
+    
+    AssetCreateModel {
+        name: "dummy switch".to_owned(),
+        description: "rozdeľuje sieť na virtuálne podsiete".to_owned(),
+        responsible: "sieťový administrátor".to_owned(),
+    }.create(&db).await.unwrap();
+    
+    AssetCreateModel {
+        name: "dummy databáza".to_owned(),
+        description: "sídlia tu všetky dáta".to_owned(),
+        responsible: "IT administrátor".to_owned(),
+    }.create(&db).await.unwrap();
+}
 #[tokio::test]
 async fn populate_db() {
     let db = create_connection().await;

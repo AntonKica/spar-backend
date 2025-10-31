@@ -1,13 +1,14 @@
-use actix_web::{web, HttpResponse};
+use actix_web::{post, web, HttpResponse};
 use actix_web::Responder;
 use actix_web::{get, App, HttpServer};
 use actix_web::web::{scope, Path};
-use serde::{Serialize};
+use chrono::{NaiveDate, Utc};
+use serde::{Deserialize, Serialize};
 use sqlx::{Pool, Postgres};
 use strum::IntoEnumIterator;
 use spar_backend::{create_connection};
 use spar_backend::enums::ModuleType;
-use spar_backend::model::{ApplicationModel, BusinessProcessModel, ITSystemCreateModel, RoleModel, ITSystemModel, BusinessProcessApplicationCreateModel, BusinessProcessApplicationModel};
+use spar_backend::model::{ApplicationModel, BusinessProcessModel, ITSystemCreateModel, RoleModel, ITSystemModel, BusinessProcessApplicationCreateModel, BusinessProcessApplicationModel, AssetModel, RiskAnalysisProcessCreateModel};
 use spar_backend::response::EnumResponse;
 
 #[derive(Serialize)]
@@ -405,6 +406,89 @@ pub async fn business_process_application_list(
     }
 }
 
+#[derive(Deserialize)]
+pub struct RiskAnalysisPostCreateModel {
+    pub target_objects_under_review: Vec<String>
+}
+
+#[get("/asset/")]
+pub async fn asset_list(
+    data: web::Data<AppState>,
+) -> impl Responder {
+    let query_result =  sqlx::query_as!(
+        AssetModel,
+        r#"SELECT * FROM asset"#,
+    )
+        .fetch_all(&data.db)
+        .await;
+    match query_result {
+        Ok(res) => {
+            HttpResponse::Ok().json(serde_json::json!({ "status": "ok", "data": res }))
+        }
+        Err(err) => {
+            let message = format!("{:?}", err);
+            HttpResponse::Ok().json(serde_json::json!({ "status": "failed", "error": message}))
+        }
+    }
+}
+#[post("/risk-analysis-process/create")]
+pub async fn risk_analysis_process_create(
+    body: web::Json<RiskAnalysisPostCreateModel>,
+    data: web::Data<AppState>,
+) -> impl Responder {
+    let mut tx = match data.db.begin().await {
+        Ok(tx) => { tx }
+        Err(err) => {
+            let message = format!("Error: {:?}", err);
+            return HttpResponse::Ok().json(serde_json::json!({"status": "error","message": message}));
+        }
+    };
+
+    let create_res = RiskAnalysisProcessCreateModel { created_on: Utc::now().date_naive(), }.create(&mut *tx).await;
+    let risk_analysis_process_code = match create_res  {
+      Ok(res) => {
+            res
+        }
+        Err(err) => {
+            let message = format!("Error: {:?}", err);
+            return HttpResponse::Ok().json(serde_json::json!({"status": "error","message": message}));
+        }
+    };
+
+    let target_objects_under_review = &body.target_objects_under_review;
+    let query = r"
+            INSERT INTO target_object_under_review (
+                risk_analysis_process_code,
+                asset_code
+            ) SELECT * FROM UNNEST(
+                $1::CHAR(8)[],
+                $2::VARCHAR(20)[]
+            ) ON CONFLICT DO NOTHING";
+
+    let res = sqlx::query(query)
+        .bind(vec![risk_analysis_process_code.to_owned(); target_objects_under_review.len()])
+        .bind(target_objects_under_review)
+        .fetch_all(&mut *tx)
+        .await;
+
+    match res  {
+        Ok(res) => {}
+        Err(err) => {
+            let message = format!("Error: {:?}", err);
+            return HttpResponse::Ok().json(serde_json::json!({"status": "error","message": message}));
+        }
+    };
+
+    match tx.commit().await {
+        Ok(_) => { HttpResponse::Ok().json(serde_json::json!({ "status": "ok", "code": risk_analysis_process_code })) }
+        Err(err) => {
+            let message = format!("Error: {:?}", err);
+            HttpResponse::Ok().json(serde_json::json!({"status": "error","message": message}))
+        }
+    }
+}
+
+
 pub struct AppState {
     db: Pool<Postgres>,
 }
@@ -430,6 +514,8 @@ async fn main() -> std::io::Result<()> {
                     .service(bsi_it_grundschutz_module)
                     .service(bsi_it_grundschutz_elementary_threat)
                     .service(business_process_application_list)
+                    .service(asset_list)
+                    .service(risk_analysis_process_create)
             )
     })
         .bind(("127.0.0.1", 8080))?

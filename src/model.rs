@@ -1,4 +1,6 @@
-use sqlx::{Pool, Postgres};
+use chrono::{NaiveDate, Utc};
+use serde::Serialize;
+use sqlx::{PgConnection, Pool, Postgres};
 use crate::enums::{BusinessProcessType, ModuleType};
 use crate::response::EnumResponse;
 
@@ -76,12 +78,50 @@ pub struct ITSystemCreateModel {
     pub responsible: String,
 }
 
+pub struct AssetCreateModel {
+    pub name: String,
+    pub description: String,
+    pub responsible: String,
+}
+#[derive(Serialize)]
+pub struct AssetModel {
+    pub code: String,
+    pub name: String,
+    pub description: String,
+    pub responsible: String,
+}
+
+pub struct RiskAnalysisProcessCreateModel {
+    pub created_on: NaiveDate,
+}
+pub struct TargetObjectUnderReviewCreateModel {
+    pub risk_analysis_process_code: String,
+    pub asset_code: String,
+}
+
 async fn next_code_for(table: &str, code: &str, num_digits: u32, db: &Pool<Postgres>) -> String {
     let prefix = code.to_owned() + "-";
     let default_value = format!("{prefix}{:0width$}", 0, width = num_digits as usize);
     let query = format!("SELECT code FROM {table} ORDER BY code DESC LIMIT 1");
 
     let top_code: String = sqlx::query_scalar(query.as_str()).fetch_one(db).await.unwrap_or(default_value);
+    let top_code_number = top_code
+        .strip_prefix(prefix.as_str())
+        .unwrap()
+        .to_owned()
+        .parse::<i32>()
+        .unwrap();
+
+    let res = format!("{code}-{:0width$}", top_code_number + 1, width = num_digits as usize);
+    res
+}
+
+async fn next_code_for_conn(table: &str, code: &str, num_digits: u32, tx: &mut PgConnection) -> String {
+    let prefix = code.to_owned() + "-";
+    let default_value = format!("{prefix}{:0width$}", 0, width = num_digits as usize);
+    let query = format!("SELECT code FROM {table} ORDER BY code DESC LIMIT 1");
+
+    let top_code: String = sqlx::query_scalar(query.as_str()).fetch_one(tx).await.unwrap_or(default_value);
     let top_code_number = top_code
         .strip_prefix(prefix.as_str())
         .unwrap()
@@ -192,4 +232,34 @@ pub async fn set_responsible(business_process_code: String, role_code: String, d
         .execute(db)
         .await?;
     Ok(())
+}
+
+impl AssetCreateModel {
+    pub async fn create(&self, db: &Pool<Postgres>) -> Result<String, sqlx::Error> {
+        let code = next_code_for("asset", "ASSET", 6, db).await;
+        sqlx::query!(
+        r#"INSERT INTO asset(code, name, description, responsible) VALUES ($1,$2,$3,$4)"#,
+        code,
+        self.name,
+        self.description,
+            self.responsible,
+        )
+            .execute(db)
+            .await?;
+        Ok(code)
+    }
+}
+
+impl RiskAnalysisProcessCreateModel {
+    pub async fn create(&self, tx: &mut PgConnection) -> Result<String, sqlx::Error> {
+        let code = next_code_for_conn("risk_analysis_process", "RAP", 4, &mut *tx).await;
+        sqlx::query!(
+        r#"INSERT INTO risk_analysis_process(code, created_on) VALUES ($1,$2)"#,
+            code,
+            self.created_on,
+        )
+            .execute(&mut *tx)
+            .await?;
+        Ok(code)
+    }
 }
