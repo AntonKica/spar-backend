@@ -1,17 +1,21 @@
 use std::env;
 use sqlx::{Pool, Postgres};
 use sqlx::postgres::PgPoolOptions;
-
+use crate::configuration::AppConfig;
 
 pub mod response;
 pub mod model;
 pub mod enums;
-pub async fn create_connection() -> Pool<Postgres> {
-    let database_url = env::var("DATABASE_URL").expect("DATABASE_URL is not set");
+pub mod workflow;
+pub mod workflow_model;
+pub mod service;
+pub mod routes;
+pub mod configuration;
 
+pub async fn create_connection(app_config: &AppConfig) -> Pool<Postgres> {
     match PgPoolOptions::new()
         .max_connections(10)
-        .connect(&database_url)
+        .connect(&app_config.database_url)
         .await
     {
         Ok(pool) => {

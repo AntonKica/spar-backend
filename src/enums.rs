@@ -2,7 +2,7 @@ use strum_macros::EnumIter;
 use crate::response::EnumResponse;
 
 #[repr(i32)]
-#[derive(Copy, Clone)]
+#[derive(Debug, Copy, Clone)]
 pub enum BusinessProcessType {
     UNKNOWN = -1,
     PRIMARY = 0,
@@ -96,7 +96,7 @@ impl From<i32> for ProtectionRequirementType {
 }
 
 #[repr(i32)]
-#[derive(Copy, Clone, EnumIter)]
+#[derive(Debug, Copy, Clone, EnumIter)]
 pub enum ModuleType {
     UNKNOWN = -1,
     ISMS_1_SECURITY_MANAGEMENT = 0,

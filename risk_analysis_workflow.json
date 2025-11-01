@@ -1,0 +1,30 @@
+{
+  "code": "risk_analysis_workflow",
+  "name": "Proces analýzy rizík",
+  "tasks": [
+    {
+      "code": "threat_overview",
+      "name": "Prehľad hrozieb",
+      "sub-tasks": [
+        {
+          "code": "elementary_threat_overview",
+          "name" : "Prehľad základných hrozieb"
+        },
+        {
+          "code": "supplementary_threat_overview",
+          "name" : "Prehľad doplnkových hrozieb"
+        }
+      ]
+    },
+    {
+      "code": "risk_classification",
+      "name": "Klasifikácia rizika",
+      "sub-tasks": [
+        {
+          "code": "risk_evaluation",
+          "name" : "Vyhodnotenie rizika"
+        }
+      ]
+    }
+  ]
+}

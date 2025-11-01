@@ -1,9 +1,10 @@
-use chrono::{NaiveDate, Utc};
+use chrono::{NaiveDate};
 use serde::Serialize;
-use sqlx::{PgConnection, Pool, Postgres};
+use sqlx::{PgConnection};
+use thiserror::Error;
 use crate::enums::{BusinessProcessType, ModuleType};
-use crate::response::EnumResponse;
 
+#[derive(Debug, Clone)]
 pub struct BusinessProcessModel {
     pub code: String,
     pub name: String,
@@ -12,28 +13,33 @@ pub struct BusinessProcessModel {
     pub responsible: Option<String>,
 }
 
+#[derive(Debug, Clone)]
 pub struct BusinessProcessCreateModel {
     pub name: String,
     pub description: String,
     pub process_type: BusinessProcessType
 }
 
+#[derive(Debug, Clone)]
 pub struct RoleModel {
     pub code: String,
     pub name: String,
     pub description: String,
 }
 
+#[derive(Debug, Clone)]
 pub struct RoleCreateModel {
     pub name: String,
     pub description: String,
 }
 
+#[derive(Debug, Clone)]
 pub struct BusinessProcessRoleCreateModel {
     pub business_process_code: String,
     pub role_code: String,
 }
 
+#[derive(Debug, Clone)]
 pub struct ApplicationModel {
     pub code: String,
     pub name: String,
@@ -42,6 +48,7 @@ pub struct ApplicationModel {
     pub application_user: String,
     pub responsible: String,
 }
+#[derive(Debug, Clone)]
 pub struct ApplicationCreateModel {
     pub name: String,
     pub description: String,
@@ -50,15 +57,18 @@ pub struct ApplicationCreateModel {
     pub responsible: String,
 }
 
+#[derive(Debug, Clone)]
 pub struct BusinessProcessApplicationModel {
     pub business_process_code: String,
     pub application_code: String,
 }
+#[derive(Debug, Clone)]
 pub struct BusinessProcessApplicationCreateModel {
     pub business_process_code: String,
     pub application_code: String,
 }
 
+#[derive(Debug, Clone)]
 pub struct ITSystemModel {
     pub code: String,
     pub name: String,
@@ -69,6 +79,7 @@ pub struct ITSystemModel {
     pub responsible: String,
 }
 
+#[derive(Debug, Clone)]
 pub struct ITSystemCreateModel {
     pub name: String,
     pub description: String,
@@ -78,6 +89,7 @@ pub struct ITSystemCreateModel {
     pub responsible: String,
 }
 
+#[derive(Debug, Clone)]
 pub struct AssetCreateModel {
     pub name: String,
     pub description: String,
@@ -91,51 +103,75 @@ pub struct AssetModel {
     pub responsible: String,
 }
 
+#[derive(Debug, Clone)]
 pub struct RiskAnalysisProcessCreateModel {
     pub created_on: NaiveDate,
 }
+#[derive(Debug, Clone)]
 pub struct TargetObjectUnderReviewCreateModel {
     pub risk_analysis_process_code: String,
     pub asset_code: String,
 }
 
-async fn next_code_for(table: &str, code: &str, num_digits: u32, db: &Pool<Postgres>) -> String {
-    let prefix = code.to_owned() + "-";
-    let default_value = format!("{prefix}{:0width$}", 0, width = num_digits as usize);
-    let query = format!("SELECT code FROM {table} ORDER BY code DESC LIMIT 1");
+#[derive(Error, Debug)]
+pub enum ModelError {
+    #[error("Database error: {0}")]
+    Database(#[from] sqlx::Error),
 
-    let top_code: String = sqlx::query_scalar(query.as_str()).fetch_one(db).await.unwrap_or(default_value);
-    let top_code_number = top_code
-        .strip_prefix(prefix.as_str())
-        .unwrap()
-        .to_owned()
-        .parse::<i32>()
-        .unwrap();
+    #[error("Code generation error: {0}")]
+    CodeGeneration(String),
 
-    let res = format!("{code}-{:0width$}", top_code_number + 1, width = num_digits as usize);
-    res
+    #[error("Invalid code format: {0}")]
+    InvalidCodeFormat(String),
 }
 
-async fn next_code_for_conn(table: &str, code: &str, num_digits: u32, tx: &mut PgConnection) -> String {
-    let prefix = code.to_owned() + "-";
-    let default_value = format!("{prefix}{:0width$}", 0, width = num_digits as usize);
-    let query = format!("SELECT code FROM {table} ORDER BY code DESC LIMIT 1");
+pub type ModelResult<T> = Result<T, ModelError>;
 
-    let top_code: String = sqlx::query_scalar(query.as_str()).fetch_one(tx).await.unwrap_or(default_value);
-    let top_code_number = top_code
-        .strip_prefix(prefix.as_str())
-        .unwrap()
-        .to_owned()
-        .parse::<i32>()
-        .unwrap();
+pub trait Creatable: Sized {
+    const TABLE_NAME: &'static str;
+    const CODE_PREFIX: &'static str;
+    const CODE_DIGITS: usize;
 
-    let res = format!("{code}-{:0width$}", top_code_number + 1, width = num_digits as usize);
-    res
+    async fn create(&self, tx: &mut PgConnection) -> ModelResult<String>;
 }
 
-impl BusinessProcessCreateModel {
-    pub async fn create(&self, db: &Pool<Postgres>) -> Result<String, sqlx::Error> {
-        let code = next_code_for("business_process", "BP", 4, db).await;
+async fn next_code_for(
+    table: &str,
+    acronym: &str,
+    code_length: usize,
+    tx: &mut PgConnection
+) -> ModelResult<String> {
+    // TOTAL LENGTH - STRING - '-'
+    let prefix = format!("{acronym}-");
+    let number_length = code_length - prefix.len();
+
+    let query = format!("SELECT code FROM {table} ORDER BY code DESC LIMIT 1");
+    let top_code: Option<String> = sqlx::query_scalar(&query).fetch_optional(tx).await?;
+    let next_number = match top_code {
+        Some(code) => {
+            code.strip_prefix(&prefix)
+                .ok_or(ModelError::InvalidCodeFormat(format!("Invalid code format {}", code.to_owned())))?
+                .parse::<usize>()
+                .map_err(|e| ModelError::InvalidCodeFormat(format!("Invalid code number {e}")))?
+            + 1
+        }
+        None => 1
+    };
+
+    Ok(format!("{prefix}{next_number:0number_length$}"))
+}
+
+impl Creatable for BusinessProcessCreateModel {
+    const TABLE_NAME: &'static str = "business_process";
+    const CODE_PREFIX: &'static str = "BP";
+    const CODE_DIGITS: usize = 7;
+
+    async fn create(
+        &self,
+        tx: &mut PgConnection
+    ) -> ModelResult<String> {
+        let code = next_code_for(Self::TABLE_NAME, Self::CODE_PREFIX, Self::CODE_DIGITS, tx).await?;
+
         sqlx::query!(
         r#"INSERT INTO business_process(code, name, description, process_type) VALUES ($1,$2,$3,$4)"#,
         code,
@@ -143,41 +179,56 @@ impl BusinessProcessCreateModel {
         self.description,
         self.process_type as i32,
         )
-            .execute(db)
+            .execute(tx)
             .await?;
+
         Ok(code)
     }
 }
 impl BusinessProcessRoleCreateModel {
-    pub async fn assign(&self, db: &Pool<Postgres>) -> Result<(), sqlx::Error> {
+    pub async fn assign(
+        &self,
+        tx: &mut PgConnection) -> Result<(), sqlx::Error> {
         sqlx::query!(r#"INSERT INTO business_process__role(business_process_code, role_code) VALUES ($1,$2)"#,
         self.business_process_code,
         self.role_code,
         )
-            .execute(db)
+            .execute(tx)
             .await?;
         Ok(())
     }
 }
 
-impl RoleCreateModel {
-    pub async fn create(&self, db: &Pool<Postgres>) -> Result<String, sqlx::Error> {
-        let code = next_code_for("role", "RL", 4, db).await;
+impl Creatable for RoleCreateModel {
+    const TABLE_NAME: &'static str = "role";
+    const CODE_PREFIX: &'static str = "RL";
+    const CODE_DIGITS: usize = 7;
+    async fn create(
+        &self,
+        tx: &mut PgConnection
+    ) -> ModelResult<String> {
+        let code = next_code_for(Self::TABLE_NAME, Self::CODE_PREFIX, Self::CODE_DIGITS, tx).await?;
         sqlx::query!(
         r#"INSERT INTO role(code, name, description) VALUES ($1,$2,$3)"#,
         code,
         self.name,
         self.description,
         )
-            .execute(db)
+            .execute(tx)
             .await?;
         Ok(code)
     }
 }
 
-impl ApplicationCreateModel {
-    pub async fn create(&self, db: &Pool<Postgres>) -> Result<String, sqlx::Error> {
-        let code = next_code_for("application", "APP", 5, db).await;
+impl Creatable for ApplicationCreateModel {
+    const TABLE_NAME: &'static str = "application";
+    const CODE_PREFIX: &'static str = "APP";
+    const CODE_DIGITS: usize = 9;
+    async fn create(
+        &self,
+        tx: &mut PgConnection
+    ) -> ModelResult<String> {
+        let code = next_code_for(Self::TABLE_NAME, Self::CODE_PREFIX, Self::CODE_DIGITS, tx).await?;
         sqlx::query!(
         r#"INSERT INTO application(code, name, description, module_type, responsible, application_user) VALUES ($1,$2,$3,$4,$5,$6)"#,
         code,
@@ -187,15 +238,21 @@ impl ApplicationCreateModel {
             self.responsible,
             self.application_user
         )
-            .execute(db)
+            .execute(tx)
             .await?;
         Ok(code)
     }
 }
 
-impl ITSystemCreateModel {
-    pub async fn create(&self, db: &Pool<Postgres>) -> Result<String, sqlx::Error> {
-        let code = next_code_for("it_system", "ITS", 5, db).await;
+impl Creatable for ITSystemCreateModel {
+    const TABLE_NAME: &'static str = "it_system";
+    const CODE_PREFIX: &'static str = "ITS";
+    const CODE_DIGITS: usize = 9;
+    async fn create(
+        &self,
+        tx: &mut PgConnection
+    ) -> ModelResult<String> {
+        let code = next_code_for(Self::TABLE_NAME, Self::CODE_PREFIX, Self::CODE_DIGITS, tx).await?;
         sqlx::query!(
         r#"INSERT INTO it_system(code, name, description, module_type, count, responsible, application_user) VALUES ($1,$2,$3,$4,$5,$6,$7)"#,
         code,
@@ -206,37 +263,51 @@ impl ITSystemCreateModel {
             self.responsible,
             self.application_user
         )
-            .execute(db)
+            .execute(tx)
             .await?;
         Ok(code)
     }
 }
 
 impl BusinessProcessApplicationCreateModel {
-    pub async fn assign(&self, db: &Pool<Postgres>) -> Result<(), sqlx::Error> {
+    pub async fn assign(
+        &self,
+        tx: &mut PgConnection
+    ) -> Result<(), sqlx::Error> {
         sqlx::query!(r#"INSERT INTO business_process__application(business_process_code, application_code) VALUES ($1,$2)"#,
+
         self.business_process_code,
         self.application_code,
         )
-            .execute(db)
+            .execute(tx)
             .await?;
         Ok(())
     }
 }
 
-pub async fn set_responsible(business_process_code: String, role_code: String, db: &Pool<Postgres>) -> Result<(), sqlx::Error> {
+pub async fn set_responsible(
+    business_process_code: String,
+    role_code: String,
+    tx: &mut PgConnection
+) -> Result<(), sqlx::Error> {
     sqlx::query!(r#"UPDATE business_process SET responsible = $2 WHERE code = $1"#,
         business_process_code,
         role_code,
         )
-        .execute(db)
+        .execute(tx)
         .await?;
     Ok(())
 }
 
-impl AssetCreateModel {
-    pub async fn create(&self, db: &Pool<Postgres>) -> Result<String, sqlx::Error> {
-        let code = next_code_for("asset", "ASSET", 6, db).await;
+impl Creatable for AssetCreateModel {
+    const TABLE_NAME: &'static str = "asset";
+    const CODE_PREFIX: &'static str = "AST";
+    const CODE_DIGITS: usize = 10;
+    async fn create(
+        &self,
+        tx: &mut PgConnection
+    ) -> ModelResult<String> {
+        let code = next_code_for(Self::TABLE_NAME, Self::CODE_PREFIX, Self::CODE_DIGITS, tx).await?;
         sqlx::query!(
         r#"INSERT INTO asset(code, name, description, responsible) VALUES ($1,$2,$3,$4)"#,
         code,
@@ -244,15 +315,21 @@ impl AssetCreateModel {
         self.description,
             self.responsible,
         )
-            .execute(db)
+            .execute(tx)
             .await?;
         Ok(code)
     }
 }
 
-impl RiskAnalysisProcessCreateModel {
-    pub async fn create(&self, tx: &mut PgConnection) -> Result<String, sqlx::Error> {
-        let code = next_code_for_conn("risk_analysis_process", "RAP", 4, &mut *tx).await;
+impl Creatable for RiskAnalysisProcessCreateModel {
+    const TABLE_NAME: &'static str = "risk_analysis_process";
+    const CODE_PREFIX: &'static str = "RAP";
+    const CODE_DIGITS: usize = 8;
+    async fn create(
+        &self,
+        tx: &mut PgConnection
+    ) -> ModelResult<String> {
+        let code = next_code_for(Self::TABLE_NAME, Self::CODE_PREFIX, Self::CODE_DIGITS, tx).await?;
         sqlx::query!(
         r#"INSERT INTO risk_analysis_process(code, created_on) VALUES ($1,$2)"#,
             code,
