@@ -1,15 +1,16 @@
+use serde::{Deserialize, Serialize};
 use crate::workflow::{Task, Workflow};
 use sqlx::PgConnection;
 use strum_macros::Display;
 
-#[derive(Debug, Display)]
+#[derive(Debug, Display, Serialize, Deserialize, Clone)]
 enum TaskStatus {
     Initial,
     Started,
     Finished
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct TaskModel {
     code: String,
     task_code: String,
@@ -18,7 +19,7 @@ pub struct TaskModel {
     sub_tasks: Vec<TaskModel>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct WorkflowModel {
     code: String,
     workflow_code: String,
@@ -37,7 +38,13 @@ fn create_task_model(task: &Task) -> TaskModel {
 }
 
 fn set_initial(tasks: &mut Vec<TaskModel>) {
-    tasks.first_mut().map(|task: &mut TaskModel| set_initial(&mut task.sub_tasks));
+    match tasks.first_mut() {
+        Some(first) => {
+            first.status = TaskStatus::Started;
+            set_initial(&mut first.sub_tasks)
+        }
+        None => {}
+    }
 }
 
 pub fn create_workflow_model(workflow: &Workflow) -> WorkflowModel {
@@ -50,8 +57,4 @@ pub fn create_workflow_model(workflow: &Workflow) -> WorkflowModel {
     set_initial(&mut res.tasks);
     
     res
-}
-
-pub async fn save_workflow_model(workflow_model: WorkflowModel, tx: &mut PgConnection) {
-
 }

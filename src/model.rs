@@ -1,8 +1,13 @@
-use chrono::{NaiveDate};
-use serde::Serialize;
+use actix_web::{HttpResponse, ResponseError};
+use chrono::{NaiveDate, Utc};
+use serde::{Deserialize, Serialize};
+use serde_json::{json, Value};
 use sqlx::{PgConnection};
 use thiserror::Error;
 use crate::enums::{BusinessProcessType, ModuleType};
+use crate::service::service::ApiError;
+use crate::workflow::{create_risk_analysis_process_workflow, Workflow};
+use crate::workflow_model::create_workflow_model;
 
 #[derive(Debug, Clone)]
 pub struct BusinessProcessModel {
@@ -103,10 +108,11 @@ pub struct AssetModel {
     pub responsible: String,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct RiskAnalysisProcessCreateModel {
-    pub created_on: NaiveDate,
+    pub target_objects_under_review: Vec<String>
 }
+
 #[derive(Debug, Clone)]
 pub struct TargetObjectUnderReviewCreateModel {
     pub risk_analysis_process_code: String,
@@ -135,7 +141,7 @@ pub trait Creatable: Sized {
     async fn create(&self, tx: &mut PgConnection) -> ModelResult<String>;
 }
 
-async fn next_code_for(
+pub async fn next_code_for(
     table: &str,
     acronym: &str,
     code_length: usize,
@@ -316,26 +322,6 @@ impl Creatable for AssetCreateModel {
             self.responsible,
         )
             .execute(tx)
-            .await?;
-        Ok(code)
-    }
-}
-
-impl Creatable for RiskAnalysisProcessCreateModel {
-    const TABLE_NAME: &'static str = "risk_analysis_process";
-    const CODE_PREFIX: &'static str = "RAP";
-    const CODE_DIGITS: usize = 8;
-    async fn create(
-        &self,
-        tx: &mut PgConnection
-    ) -> ModelResult<String> {
-        let code = next_code_for(Self::TABLE_NAME, Self::CODE_PREFIX, Self::CODE_DIGITS, tx).await?;
-        sqlx::query!(
-        r#"INSERT INTO risk_analysis_process(code, created_on) VALUES ($1,$2)"#,
-            code,
-            self.created_on,
-        )
-            .execute(&mut *tx)
             .await?;
         Ok(code)
     }

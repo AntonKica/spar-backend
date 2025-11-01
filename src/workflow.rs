@@ -1,3 +1,4 @@
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 #[derive(Debug, Clone)]
@@ -13,45 +14,38 @@ pub struct Workflow {
     pub name: String,
     pub tasks: Vec<Task>,
 }
-
-fn parse_task(task: Value) -> Result<Task, String> {
-    let code = task["code"].as_str().ok_or("no code in task")?.to_owned();
-    let name = task["name"].as_str().ok_or("no name in task")?.to_owned();
-    let sub_tasks = match task["sub_tasks"].clone() {
-        Value::Array(obj) => parse_tasks(obj)?,
-        Value::Null => Vec::new(),
-        _ => return Err("no/invalid tasks in workflow".to_owned()),
-    };
-
-    Ok(Task{code, name, sub_tasks})
-}
-fn parse_tasks(tasks: Vec<Value>) -> Result<Vec<Task>, String> {
-    let mut res = Vec::<Task>::new();
-    for task in tasks {
-        match parse_task(task) {
-            Ok(task) => res.push(task),
-            Err(e) => return Err(e)
-        }
+pub fn create_risk_analysis_process_workflow() -> Workflow {
+    Workflow {
+        code: "risk_analysis_workflow".to_owned(),
+        name: "Proces analýzy rizík".to_owned(),
+        tasks: vec![
+            Task {
+                code: "threat_overview".to_owned(),
+                name: "Prehľad hrozieb".to_owned(),
+                sub_tasks: vec![
+                    Task {
+                        code: "elementary_threat_overview".to_owned(),
+                        name : "Prehľad základných hrozieb".to_owned(),
+                        sub_tasks: vec![]
+                    },
+                    Task {
+                        code: "supplementary_threat_overview".to_owned(),
+                        name : "Prehľad doplnkových hrozieb".to_owned(),
+                        sub_tasks: vec![]
+                    }
+                ]
+            },
+            Task {
+                code: "risk_classification".to_owned(),
+                name: "Klasifikácia rizika".to_owned(),
+                sub_tasks: vec![
+                    Task {
+                        code: "risk_evaluation".to_owned(),
+                        name : "Vyhodnotenie rizika".to_owned(),
+                        sub_tasks: vec![]
+                    }
+                ]
+            }
+        ]
     }
-
-    Ok(res)
-}
-
-pub fn parse_workflow(raw: serde_json::Value) -> Result<Workflow, String> {
-    let workflow = match raw {
-        Value::Object(obj) => obj,
-        _ => return Err("Invalid workflow object".to_owned()),
-    };
-
-    let code = workflow["code"].as_str().ok_or("no code in workflow")?.to_owned();
-    let name = workflow["name"].as_str().ok_or("no name in workflow")?.to_owned();
-
-    let tasks = match workflow["tasks"].clone() {
-        Value::Array(obj) => parse_tasks(obj)?,
-        Value::Null => Vec::new(),
-        _ => return Err("no/invalid tasks in workflow".to_owned()),
-    };
-
-
-    Ok(Workflow{ code, name, tasks })
 }

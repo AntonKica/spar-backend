@@ -1,5 +1,8 @@
+use chrono::NaiveDate;
 use serde::Serialize;
 use crate::model::{ApplicationModel, BusinessProcessModel, ITSystemModel, RoleModel};
+use crate::service::risk_analysis_process_service::RiskAnalysisProcessModel;
+use crate::workflow_model::WorkflowModel;
 
 #[derive(Serialize)]
 pub struct EnumResponse {
@@ -88,6 +91,23 @@ impl From<ITSystemModel> for ITSystemResponse {
             module_type: EnumResponse::from(model.module_type),
             application_user: model.application_user,
             responsible: model.responsible,
+        }
+    }
+}
+
+#[derive(Serialize)]
+pub struct RiskAnalysisProcessResponse {
+    pub code: String,
+    pub created_on: NaiveDate,
+    pub workflow: WorkflowModel,
+}
+
+impl From<RiskAnalysisProcessModel> for RiskAnalysisProcessResponse {
+    fn from(model: RiskAnalysisProcessModel) -> Self {
+        Self {
+            code: model.code,
+            created_on: model.created_on,
+            workflow: model.workflow,
         }
     }
 }

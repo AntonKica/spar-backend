@@ -1,19 +1,18 @@
 use crate::model::{AssetModel, Creatable};
 use actix_web::{get, post, web, HttpResponse, Responder, ResponseError};
 use actix_web::web::Path;
-use chrono::Utc;
 use serde::{Deserialize, Serialize};
-use sqlx::{Pool, Postgres};
 use strum::IntoEnumIterator;
 use crate::configuration::AppState;
 use crate::enums::ModuleType;
 use crate::model::{BusinessProcessApplicationModel, RiskAnalysisProcessCreateModel};
-use crate::response::EnumResponse;
+use crate::response::{EnumResponse, RiskAnalysisProcessResponse};
 use crate::service::application_service::ApplicationService;
 use crate::service::business_process_service::BusinessProcessService;
 use crate::service::it_system_service::ITSystemService;
+use crate::service::risk_analysis_process_service::RiskAnalysisProcessService;
 use crate::service::role_service::RoleService;
-use crate::service::service::GeneralService;
+use crate::service::service::{ApiError, GeneralService};
 
 #[derive(Serialize)]
 struct ApiResponse<T> {
@@ -242,11 +241,6 @@ pub async fn business_process_application_list(
     }
 }
 
-#[derive(Deserialize)]
-pub struct RiskAnalysisPostCreateModel {
-    pub target_objects_under_review: Vec<String>
-}
-
 #[get("/asset/")]
 pub async fn asset_list(
     data: web::Data<AppState>,
@@ -267,59 +261,48 @@ pub async fn asset_list(
         }
     }
 }
-#[post("/risk-analysis-process/create")]
+#[get("/")]
+pub async fn risk_analysis_process_list(
+    data: web::Data<AppState>,
+) -> impl Responder {
+    match RiskAnalysisProcessService::list(&data.db).await {
+        Ok(data) => HttpResponse::Ok().json(ApiResponse::new(data)),
+        Err(e) => e.error_response()
+    }
+}
+
+#[get("/{code}")]
+pub async fn risk_analysis_process_get(
+    data: web::Data<AppState>,
+    path: Path<String>
+) -> impl Responder {
+    let code = path.into_inner();
+    match RiskAnalysisProcessService::get_by_code(&data.db, code).await {
+        Ok(data) => HttpResponse::Ok().json(ApiResponse::new(data)),
+        Err(e) => e.error_response()
+    }
+}
+
+#[post("/create")]
 pub async fn risk_analysis_process_create(
-    body: web::Json<RiskAnalysisPostCreateModel>,
+    body: web::Json<RiskAnalysisProcessCreateModel>,
     data: web::Data<AppState>,
 ) -> impl Responder {
     let mut tx = match data.db.begin().await {
-        Ok(tx) => { tx }
-        Err(err) => {
-            let message = format!("Error: {:?}", err);
-            return HttpResponse::Ok().json(serde_json::json!({"status": "error","message": message}));
-        }
+        Ok(tx) => tx,
+        Err(e) => return ApiError::Database(e).error_response(),
     };
 
-    let create_res = RiskAnalysisProcessCreateModel { created_on: Utc::now().date_naive(), }.create(&mut tx).await;
-    let risk_analysis_process_code = match create_res  {
-        Ok(res) => {
-            res
+    match RiskAnalysisProcessService::create(&mut tx, body.into_inner()).await {
+        Ok(code) => {
+            if let Err(e) = tx.commit().await {
+                return ApiError::Database(e).error_response();
+            }
+            HttpResponse::Ok().json(ApiResponse::new(serde_json::json!({ "code": code })))
         }
-        Err(err) => {
-            let message = format!("Error: {:?}", err);
-            return HttpResponse::Ok().json(serde_json::json!({"status": "error","message": message}));
-        }
-    };
-
-    let target_objects_under_review = &body.target_objects_under_review;
-    let query = r"
-            INSERT INTO target_object_under_review (
-                risk_analysis_process_code,
-                asset_code
-            ) SELECT * FROM UNNEST(
-                $1::CHAR(8)[],
-                $2::VARCHAR(20)[]
-            ) ON CONFLICT DO NOTHING";
-
-    let res = sqlx::query(query)
-        .bind(vec![risk_analysis_process_code.to_owned(); target_objects_under_review.len()])
-        .bind(target_objects_under_review)
-        .fetch_all(&mut *tx)
-        .await;
-
-    match res  {
-        Ok(res) => {}
-        Err(err) => {
-            let message = format!("Error: {:?}", err);
-            return HttpResponse::Ok().json(serde_json::json!({"status": "error","message": message}));
-        }
-    };
-
-    match tx.commit().await {
-        Ok(_) => { HttpResponse::Ok().json(serde_json::json!({ "status": "ok", "code": risk_analysis_process_code })) }
-        Err(err) => {
-            let message = format!("Error: {:?}", err);
-            HttpResponse::Ok().json(serde_json::json!({"status": "error","message": message}))
+        Err(e) => {
+            let _ = tx.rollback().await;
+            e.error_response()
         }
     }
 }
@@ -344,9 +327,16 @@ pub fn application_routes() -> actix_web::Scope {
 }
 
 pub fn it_system_routes() -> actix_web::Scope {
-    web::scope("/it_system")
+    web::scope("/it-system")
         .service(it_system_list)
         .service(it_system_get)
+}
+
+pub fn risk_analysis_process_routes() -> actix_web::Scope {
+    web::scope("/risk-analysis-process")
+        .service(risk_analysis_process_list)
+        .service(risk_analysis_process_get)
+        .service(risk_analysis_process_create)
 }
 pub fn other_routes() -> actix_web::Scope {
     web::scope("")
@@ -355,5 +345,4 @@ pub fn other_routes() -> actix_web::Scope {
         .service(bsi_it_grundschutz_elementary_threat)
         .service(business_process_application_list)
         .service(asset_list)
-        .service(risk_analysis_process_create)
 }
