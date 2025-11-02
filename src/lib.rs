@@ -9,8 +9,9 @@ pub mod enums;
 pub mod workflow;
 pub mod workflow_model;
 pub mod service;
-pub mod routes;
+pub mod route;
 pub mod configuration;
+pub mod api;
 
 pub async fn create_connection(app_config: &AppConfig) -> Pool<Postgres> {
     match PgPoolOptions::new()

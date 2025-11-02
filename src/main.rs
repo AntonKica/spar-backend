@@ -4,10 +4,12 @@ use actix_web::web::scope;
 use actix_web::{App, HttpServer};
 use spar_backend::configuration::{AppConfig, AppState};
 use spar_backend::create_connection;
-use spar_backend::routes::{application_routes, business_process_routes, it_system_routes, other_routes, risk_analysis_process_routes, role_routes};
-
-// TODO move routes to separate files
-// tOdO move create methods from models to services and remove model error
+use spar_backend::route::application_route::ApplicationRoute;
+use spar_backend::route::business_process_route::BusinessProcessRoute;
+use spar_backend::route::{GeneralRoute, OtherRotes};
+use spar_backend::route::it_system_route::ITSystemRoute;
+use spar_backend::route::risk_analysis_process_route::RiskAnalysisProcessRoute;
+use spar_backend::route::role::RoleRoute;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -22,12 +24,12 @@ async fn main() -> std::io::Result<()> {
             .app_data(web::Data::new(AppState{ db: db.clone() }))
             .service(
                 scope("/svc")
-                    .service(business_process_routes())
-                    .service(role_routes())
-                    .service(application_routes())
-                    .service(it_system_routes())
-                    .service(risk_analysis_process_routes())
-                    .service(other_routes())
+                    .service(BusinessProcessRoute::routes())
+                    .service(RoleRoute::routes())
+                    .service(ApplicationRoute::routes())
+                    .service(ITSystemRoute::routes())
+                    .service(RiskAnalysisProcessRoute::routes())
+                    .service(OtherRotes::routes())
             )
     })
         .bind((config.server_host, config.server_port))?
