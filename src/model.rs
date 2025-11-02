@@ -5,7 +5,7 @@ use serde_json::{json, Value};
 use sqlx::{PgConnection};
 use thiserror::Error;
 use crate::enums::{BusinessProcessType, ModuleType};
-use crate::service::service::ApiError;
+use crate::service::ApiError;
 use crate::workflow::{create_risk_analysis_process_workflow, Workflow};
 use crate::workflow_model::create_workflow_model;
 

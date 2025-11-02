@@ -1,7 +1,7 @@
 use crate::model::{AssetModel, Creatable};
 use actix_web::{get, post, web, HttpResponse, Responder, ResponseError};
 use actix_web::web::Path;
-use serde::{Deserialize, Serialize};
+use serde::{Serialize};
 use strum::IntoEnumIterator;
 use crate::configuration::AppState;
 use crate::enums::ModuleType;
@@ -12,7 +12,7 @@ use crate::service::business_process_service::BusinessProcessService;
 use crate::service::it_system_service::ITSystemService;
 use crate::service::risk_analysis_process_service::RiskAnalysisProcessService;
 use crate::service::role_service::RoleService;
-use crate::service::service::{ApiError, GeneralService};
+use crate::service::{ApiError, GeneralService};
 
 #[derive(Serialize)]
 struct ApiResponse<T> {

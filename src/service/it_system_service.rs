@@ -2,7 +2,7 @@ use sqlx::{Pool, Postgres};
 
 use crate::model::ITSystemModel;
 use crate::response::ITSystemResponse;
-use crate::service::service::{ApiError, ApiResult, GeneralService};
+use crate::service::{ApiError, ApiResult, GeneralService};
 
 pub struct ITSystemService;
 

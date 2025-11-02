@@ -1,6 +1,6 @@
 use crate::model::{next_code_for, RiskAnalysisProcessCreateModel, TargetObjectUnderReviewCreateModel};
 use crate::response::RiskAnalysisProcessResponse;
-use crate::service::service::{ApiError, ApiResult, GeneralService};
+use crate::service::{ApiError, ApiResult, GeneralService};
 use crate::workflow::create_risk_analysis_process_workflow;
 use crate::workflow_model::{create_workflow_model, WorkflowModel};
 use chrono::{NaiveDate, Utc};

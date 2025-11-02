@@ -1,10 +1,13 @@
-use actix_web::web::scope;
-use actix_web::web;
 use actix_web::middleware::Logger;
+use actix_web::web;
+use actix_web::web::scope;
 use actix_web::{App, HttpServer};
 use spar_backend::configuration::{AppConfig, AppState};
 use spar_backend::create_connection;
-use spar_backend::routes::{application_routes, business_process_list, business_process_routes, it_system_routes, other_routes, risk_analysis_process_routes, role_routes};
+use spar_backend::routes::{application_routes, business_process_routes, it_system_routes, other_routes, risk_analysis_process_routes, role_routes};
+
+// TODO move routes to separate files
+// tOdO move create methods from models to services and remove model error
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {

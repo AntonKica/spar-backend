@@ -2,7 +2,7 @@ use sqlx::{Pool, Postgres};
 
 use crate::model::BusinessProcessModel;
 use crate::response::BusinessProcessResponse;
-use crate::service::service::{ApiError, ApiResult, GeneralService};
+use crate::service::{ApiError, ApiResult, GeneralService};
 
 pub struct BusinessProcessService;
 

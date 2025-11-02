@@ -2,7 +2,7 @@ use sqlx::{Pool, Postgres};
 
 use crate::model::RoleModel;
 use crate::response::RoleResponse;
-use crate::service::service::{ApiError, ApiResult, GeneralService};
+use crate::service::{ApiError, ApiResult, GeneralService};
 
 pub struct RoleService;
 
