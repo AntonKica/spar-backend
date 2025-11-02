@@ -63,3 +63,15 @@ pub async fn risk_analysis_process_create(
         }
     }
 }
+
+#[get("/{code}/threat-overview-list")]
+pub async fn threat_overview_list(
+    data: web::Data<AppState>,
+    path: Path<String>
+) -> impl Responder {
+    let code = path.into_inner();
+    match RiskAnalysisProcessService::get_by_code(&data.db, code).await {
+        Ok(data) => HttpResponse::Ok().json(ApiResponse::new(data)),
+        Err(e) => e.error_response()
+    }
+}

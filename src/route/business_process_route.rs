@@ -14,9 +14,10 @@ pub struct BusinessProcessRoute {}
 impl GeneralRoute for BusinessProcessRoute {
     fn routes() -> Scope {
         web::scope("/business-process")
-            .service(business_process_application_list)
+            .service(business_process_list)
             .service(business_process_get)
             .service(business_process_get_assigned_roles)
+            .service(business_process_application_list)
     }
 }
 #[get("/")]
@@ -68,7 +69,7 @@ impl BusinessProcessApplicationResponse {
     }
 }
 
-#[get("/business-process-application/")]
+#[get("/application/")]
 pub async fn business_process_application_list(
     data: web::Data<AppState>,
 ) -> impl Responder {

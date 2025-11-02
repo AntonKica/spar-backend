@@ -5,7 +5,7 @@ pub mod it_system_route;
 pub mod risk_analysis_process_route;
 
 
-use crate::model::{AssetModel, Creatable};
+use crate::model::{AssetModel};
 use actix_web::{get, post, web, HttpResponse, Responder, ResponseError, Scope};
 use actix_web::web::Path;
 use serde::{Serialize};

@@ -1,12 +1,33 @@
-use sqlx::{Pool, Postgres};
+use sqlx::{PgConnection, Pool, Postgres};
 
-use crate::model::RoleModel;
+use crate::model::{BusinessProcessCreateModel, RoleCreateModel, RoleModel};
 use crate::response::RoleResponse;
-use crate::service::{ApiError, ApiResult, GeneralService};
+use crate::service::{next_code_for, ApiError, ApiResult, GeneralService};
 
 pub struct RoleService;
 
-impl GeneralService<RoleResponse> for RoleService {
+impl GeneralService<RoleResponse, RoleCreateModel> for RoleService {
+    const TABLE_NAME: &'static str = "role";
+    const CODE_PREFIX: &'static str = "RL";
+    const CODE_DIGITS: usize = 7;
+
+    async fn create(
+        tx: &mut PgConnection,
+        create_model: RoleCreateModel,
+    ) -> ApiResult<String> {
+        let code = next_code_for(Self::TABLE_NAME, Self::CODE_PREFIX, Self::CODE_DIGITS, tx).await?;
+
+        sqlx::query!(
+        r#"INSERT INTO role(code, name, description) VALUES ($1,$2,$3)"#,
+        code,
+        create_model.name,
+        create_model.description,
+        )
+            .execute(tx)
+            .await?;
+        Ok(code)
+    }
+
     async fn list(db: &Pool<Postgres>) -> ApiResult<Vec<RoleResponse>> {
         let res = sqlx::query_as!(RoleModel, r#"SELECT * FROM role"#)
             .fetch_all(db)

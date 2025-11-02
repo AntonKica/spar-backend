@@ -1,6 +1,6 @@
-use crate::model::{next_code_for, RiskAnalysisProcessCreateModel, TargetObjectUnderReviewCreateModel};
+use crate::model::{RiskAnalysisProcessCreateModel, TargetObjectUnderReviewCreateModel};
 use crate::response::RiskAnalysisProcessResponse;
-use crate::service::{ApiError, ApiResult, GeneralService};
+use crate::service::{next_code_for, ApiError, ApiResult, GeneralService};
 use crate::workflow::create_risk_analysis_process_workflow;
 use crate::workflow_model::{create_workflow_model, WorkflowModel};
 use chrono::{NaiveDate, Utc};
@@ -35,41 +35,11 @@ impl RiskAnalysisProcessModel {
     }
 }
 
-impl GeneralService<RiskAnalysisProcessResponse> for RiskAnalysisProcessService {
-    async fn list(db: &Pool<Postgres>) -> ApiResult<Vec<RiskAnalysisProcessResponse>> {
-        let rows = sqlx::query_as!(RiskAnalysisProcessRow, r#"SELECT * FROM risk_analysis_process"#)
-            .fetch_all(db)
-            .await?;
-
-        let mut list: Vec<RiskAnalysisProcessResponse> = vec![];
-        for row in rows {
-            let target_objects_under_review = sqlx::query_as!(TargetObjectUnderReviewCreateModel, r#"SELECT * FROM target_object_under_review WHERE risk_analysis_process_code = $1"#, row.code)
-                .fetch_all(db)
-                .await?;
-
-            list.push(RiskAnalysisProcessResponse::from(RiskAnalysisProcessModel::from_row(row.clone(), target_objects_under_review)));
-        };
-
-        Ok(list)
-    }
-
-    async fn get_by_code(db: &Pool<Postgres>, code: String) -> ApiResult<RiskAnalysisProcessResponse> {
-        let row = sqlx::query_as!(RiskAnalysisProcessRow, r#"SELECT * FROM risk_analysis_process WHERE code = $1"#, code)
-            .fetch_optional(db)
-            .await?
-            .ok_or_else(|| ApiError::NotFound(format!("RiskAnalysisProcess with code {} not found", code)))?;
-        let target_objects_under_review = sqlx::query_as!(TargetObjectUnderReviewCreateModel, r#"SELECT * FROM target_object_under_review WHERE risk_analysis_process_code = $1"#, row.code)
-            .fetch_all(db)
-            .await?;
-        Ok(RiskAnalysisProcessResponse::from(RiskAnalysisProcessModel::from_row(row, target_objects_under_review)))
-    }
-}
-
-impl RiskAnalysisProcessService {
+impl GeneralService<RiskAnalysisProcessResponse, RiskAnalysisProcessCreateModel> for RiskAnalysisProcessService {
     const TABLE_NAME: &'static str = "risk_analysis_process";
     const CODE_PREFIX: &'static str = "RAP";
     const CODE_DIGITS: usize = 8;
-    pub async fn create(
+    async fn create(
         tx: &mut PgConnection,
         create_model: RiskAnalysisProcessCreateModel
     ) -> ApiResult<String> {
@@ -77,7 +47,7 @@ impl RiskAnalysisProcessService {
             Ok(val) => val,
             Err(_) => return Err(ApiError::Internal)
         };
-        
+
         let created_on = Utc::now().date_naive();
         let workflow = json!(create_workflow_model(&create_risk_analysis_process_workflow()));
 
@@ -107,5 +77,32 @@ impl RiskAnalysisProcessService {
             .await?;
 
         Ok(code)
+    }
+    async fn list(db: &Pool<Postgres>) -> ApiResult<Vec<RiskAnalysisProcessResponse>> {
+        let rows = sqlx::query_as!(RiskAnalysisProcessRow, r#"SELECT * FROM risk_analysis_process"#)
+            .fetch_all(db)
+            .await?;
+
+        let mut list: Vec<RiskAnalysisProcessResponse> = vec![];
+        for row in rows {
+            let target_objects_under_review = sqlx::query_as!(TargetObjectUnderReviewCreateModel, r#"SELECT * FROM target_object_under_review WHERE risk_analysis_process_code = $1"#, row.code)
+                .fetch_all(db)
+                .await?;
+
+            list.push(RiskAnalysisProcessResponse::from(RiskAnalysisProcessModel::from_row(row.clone(), target_objects_under_review)));
+        };
+
+        Ok(list)
+    }
+
+    async fn get_by_code(db: &Pool<Postgres>, code: String) -> ApiResult<RiskAnalysisProcessResponse> {
+        let row = sqlx::query_as!(RiskAnalysisProcessRow, r#"SELECT * FROM risk_analysis_process WHERE code = $1"#, code)
+            .fetch_optional(db)
+            .await?
+            .ok_or_else(|| ApiError::NotFound(format!("RiskAnalysisProcess with code {} not found", code)))?;
+        let target_objects_under_review = sqlx::query_as!(TargetObjectUnderReviewCreateModel, r#"SELECT * FROM target_object_under_review WHERE risk_analysis_process_code = $1"#, row.code)
+            .fetch_all(db)
+            .await?;
+        Ok(RiskAnalysisProcessResponse::from(RiskAnalysisProcessModel::from_row(row, target_objects_under_review)))
     }
 }
