@@ -1,8 +1,8 @@
-CREATE TABLE it_grundschutz_module ( code VARCHAR(20) NOT NULL,
+CREATE TABLE it_grundschutz_module ( code VARCHAR(20) NOT NULL PRIMARY KEY,
                                      name VARCHAR(160) NOT NULL
 );
 
-CREATE TABLE it_grundschutz_elementary_threat ( code VARCHAR(20) NOT NULL,
+CREATE TABLE it_grundschutz_elementary_threat ( code VARCHAR(20) NOT NULL PRIMARY KEY,
                                                 name VARCHAR(160) NOT NULL
 );
 

@@ -4,8 +4,10 @@ use crate::service::{next_code_for, ApiError, ApiResult, GeneralService};
 use crate::workflow::create_risk_analysis_process_workflow;
 use crate::workflow_model::{create_workflow_model, WorkflowModel};
 use chrono::{NaiveDate, Utc};
+use serde::Serialize;
 use serde_json::{json, Value};
 use sqlx::{PgConnection, Pool, Postgres};
+use crate::enums::ElementaryThreatRelevance;
 
 pub struct RiskAnalysisProcessService;
 
@@ -76,6 +78,24 @@ impl GeneralService<RiskAnalysisProcessResponse, RiskAnalysisProcessCreateModel>
             .fetch_all(&mut *tx)
             .await?;
 
+        sqlx::query!(
+            r#"
+INSERT INTO tour_elementary_threat
+SELECT target_object_under_review.risk_analysis_process_code AS risk_analysis_process_code,
+       target_object_under_review.asset_code as asset_code,
+       it_grundschutz_elementary_threat.code as it_grundschutz_elementary_threat_code,
+       $2,
+       '',
+       FALSE
+FROM it_grundschutz_elementary_threat
+INNER JOIN target_object_under_review ON target_object_under_review.risk_analysis_process_code = $1
+"#,
+            code.clone(),
+            ElementaryThreatRelevance::IRRELEVANT as i32
+        )
+            .execute(&mut *tx)
+            .await?;
+
         Ok(code)
     }
     async fn list(db: &Pool<Postgres>) -> ApiResult<Vec<RiskAnalysisProcessResponse>> {
@@ -104,5 +124,110 @@ impl GeneralService<RiskAnalysisProcessResponse, RiskAnalysisProcessCreateModel>
             .fetch_all(db)
             .await?;
         Ok(RiskAnalysisProcessResponse::from(RiskAnalysisProcessModel::from_row(row, target_objects_under_review)))
+    }
+}
+
+pub struct TOURThreatOverviewModel {
+    pub asset_code: String,
+    pub asset_name: String,
+    // TODO BUG WITH QUERY WHICH SHOULD EXPECT BOOL instead of OPTION
+    pub identified_basic_threat: Option<bool>,
+    pub identified_supplementary_threat: Option<bool>,
+}
+
+#[derive(Serialize)]
+pub struct TOURThreatOverviewResponse {
+    pub asset_code: String,
+    pub asset_name: String,
+    // TODO BUG WITH QUERY WHICH SHOULD EXPECT BOOL instead of OPTION
+    // https://github.com/launchbadge/sqlx/issues/4065
+    pub identified_basic_threat: bool,
+    pub identified_supplementary_threat: bool,
+}
+impl From<TOURThreatOverviewModel> for TOURThreatOverviewResponse {
+    fn from(model: TOURThreatOverviewModel) -> Self {
+        Self {
+            asset_name: model.asset_name,
+            asset_code: model.asset_code,
+            identified_basic_threat: model.identified_basic_threat.unwrap(),
+            identified_supplementary_threat: model.identified_supplementary_threat.unwrap(),
+        }
+    }
+}
+
+pub struct TOURElementaryThreatModel {
+    pub elementary_threat_name: String,
+    pub relevance: i32,
+    pub comment: String,
+    pub reviewed: bool,
+}
+
+#[derive(Serialize)]
+pub struct TOURElementaryThreatResponse {
+    pub elementary_threat_name: String,
+    pub relevance: i32,
+    pub comment: String,
+    pub reviewed: bool,
+}
+
+impl From<TOURElementaryThreatModel> for TOURElementaryThreatResponse {
+    fn from(model: TOURElementaryThreatModel) -> Self {
+        Self {
+            elementary_threat_name: model.elementary_threat_name,
+            relevance: model.relevance,
+            comment: model.comment,
+            reviewed: model.reviewed,
+        }
+    }
+}
+impl RiskAnalysisProcessService {
+    pub async fn get_threat_overview(db: &Pool<Postgres>, code: String) -> ApiResult<Vec<TOURThreatOverviewResponse>>{
+        let res: Vec<TOURThreatOverviewModel> =  sqlx::query_as!(TOURThreatOverviewModel,
+            r#"
+SELECT
+    asset.code AS asset_code,
+    asset.name AS asset_name,
+    CASE
+        WHEN EXISTS (
+            SELECT 1
+            FROM tour_elementary_threat
+            WHERE tour_elementary_threat.risk_analysis_process_code = $1
+              AND tour_elementary_threat.asset_code = asset.code
+              AND reviewed = FALSE
+        ) THEN FALSE
+        ELSE TRUE
+        END AS identified_basic_threat,
+    FALSE AS identified_supplementary_threat
+FROM asset
+         INNER JOIN target_object_under_review ON asset.code = target_object_under_review.asset_code
+WHERE target_object_under_review.risk_analysis_process_code = $1
+ORDER BY CODE
+            "#,
+            code
+        ).fetch_all(db).await?;
+
+        Ok(res.into_iter().map(TOURThreatOverviewResponse::from).collect())
+    }
+
+
+    pub async fn get_elementary_threat_list(db: &Pool<Postgres>, code: String, asset: String) -> ApiResult<Vec<TOURElementaryThreatResponse>>{
+        let res: Vec<TOURElementaryThreatModel> =  sqlx::query_as!(TOURElementaryThreatModel,
+            r#"
+            SELECT
+            iget.name AS elementary_threat_name,
+            tet.relevance,
+            tet.comment,
+            tet.reviewed
+            FROM tour_elementary_threat AS tet
+            INNER JOIN it_grundschutz_elementary_threat AS iget ON iget.code = tet.it_grundschutz_elementary_threat_code
+            INNER JOIN asset AS a ON a.code = tet.asset_code
+            WHERE tet.risk_analysis_process_code = $1 AND tet.asset_code = $2
+            ORDER BY iget.code
+            "#,
+            code,
+            asset
+        ).fetch_all(db).await?;
+
+        Ok(res.into_iter().map(TOURElementaryThreatResponse::from).collect())
     }
 }

@@ -3,6 +3,13 @@ use crate::response::EnumResponse;
 
 #[repr(i32)]
 #[derive(Debug, Copy, Clone)]
+pub enum ElementaryThreatRelevance {
+    DIRECT,
+    INDIRECT,
+    IRRELEVANT,
+}
+#[repr(i32)]
+#[derive(Debug, Copy, Clone)]
 pub enum BusinessProcessType {
     UNKNOWN = -1,
     PRIMARY = 0,

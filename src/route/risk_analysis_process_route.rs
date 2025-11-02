@@ -15,6 +15,8 @@ impl GeneralRoute for RiskAnalysisProcessRoute {
             .service(risk_analysis_process_list)
             .service(risk_analysis_process_get)
             .service(risk_analysis_process_create)
+            .service(threat_overview_list)
+            .service(elementary_threat_list)
     }
 }
 
@@ -64,13 +66,25 @@ pub async fn risk_analysis_process_create(
     }
 }
 
-#[get("/{code}/threat-overview-list")]
+#[get("/{code}/threat-overview")]
 pub async fn threat_overview_list(
     data: web::Data<AppState>,
     path: Path<String>
 ) -> impl Responder {
     let code = path.into_inner();
-    match RiskAnalysisProcessService::get_by_code(&data.db, code).await {
+    match RiskAnalysisProcessService::get_threat_overview(&data.db, code).await {
+        Ok(data) => HttpResponse::Ok().json(ApiResponse::new(data)),
+        Err(e) => e.error_response()
+    }
+}
+
+#[get("/{code}/elementary-threat/{asset}")]
+pub async fn elementary_threat_list(
+    data: web::Data<AppState>,
+    path: Path<(String, String)>
+) -> impl Responder {
+    let (code, asset) = path.into_inner();
+    match RiskAnalysisProcessService::get_elementary_threat_list(&data.db, code, asset).await {
         Ok(data) => HttpResponse::Ok().json(ApiResponse::new(data)),
         Err(e) => e.error_response()
     }
