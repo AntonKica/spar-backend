@@ -2,11 +2,36 @@ use strum_macros::EnumIter;
 use crate::response::EnumResponse;
 
 #[repr(i32)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, EnumIter)]
 pub enum ElementaryThreatRelevance {
     DIRECT,
     INDIRECT,
     IRRELEVANT,
+}
+
+impl From<ElementaryThreatRelevance> for EnumResponse {
+    fn from(value: ElementaryThreatRelevance) -> Self {
+        match value {
+            ElementaryThreatRelevance::DIRECT => {
+                EnumResponse {
+                    code: ElementaryThreatRelevance::DIRECT as i32,
+                    name: "priamy".to_owned()
+                }
+            }
+            ElementaryThreatRelevance::INDIRECT => {
+                EnumResponse {
+                    code: ElementaryThreatRelevance::INDIRECT as i32,
+                    name: "nepriamy".to_owned()
+                }
+            }
+            ElementaryThreatRelevance::IRRELEVANT => {
+                EnumResponse {
+                    code: ElementaryThreatRelevance::IRRELEVANT as i32,
+                    name: "irelevantný".to_owned()
+                }
+            }
+        }
+    }
 }
 #[repr(i32)]
 #[derive(Debug, Copy, Clone)]

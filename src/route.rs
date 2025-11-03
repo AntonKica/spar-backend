@@ -12,7 +12,7 @@ use serde::{Serialize};
 use strum::IntoEnumIterator;
 use crate::api::{ApiResponse};
 use crate::configuration::AppState;
-use crate::enums::ModuleType;
+use crate::enums::{ModuleType, ElementaryThreatRelevance};
 use crate::model::{RiskAnalysisProcessCreateModel};
 use crate::response::{EnumResponse};
 use crate::service::application_service::ApplicationService;
@@ -34,6 +34,7 @@ impl GeneralRoute for OtherRotes {
             .service(bsi_it_grundschutz_module)
             .service(bsi_it_grundschutz_elementary_threat)
             .service(asset_list)
+            .service(elmentary_threat_relevance)
     }
 }
 #[get("/")]
@@ -113,6 +114,7 @@ pub async fn enum_module_type_list(
 pub struct EnumCodeResponse {
     pub code: String,
     pub name: String,
+    pub _order: i32,
 }
 #[get("/enum/bsi-it-grundschutz-module/")]
 pub async fn bsi_it_grundschutz_module(
@@ -176,4 +178,12 @@ pub async fn asset_list(
             HttpResponse::Ok().json(serde_json::json!({ "status": "failed", "error": message}))
         }
     }
+}
+
+#[get("/enum/elementary-threat-relevance/")]
+pub async fn elmentary_threat_relevance(
+    data: web::Data<AppState>,
+) -> impl Responder {
+    let data: Vec<EnumResponse> = ElementaryThreatRelevance::iter().map(EnumResponse::from).collect();
+    HttpResponse::Ok().json(ApiResponse::new(data))
 }

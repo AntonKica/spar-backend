@@ -1,9 +1,12 @@
 CREATE TABLE it_grundschutz_module ( code VARCHAR(20) NOT NULL PRIMARY KEY,
-                                     name VARCHAR(160) NOT NULL
+                                     name VARCHAR(160) NOT NULL,
+                                     _order  SERIAL
+
 );
 
 CREATE TABLE it_grundschutz_elementary_threat ( code VARCHAR(20) NOT NULL PRIMARY KEY,
-                                                name VARCHAR(160) NOT NULL
+                                                name VARCHAR(160) NOT NULL,
+                                                _order SERIAL
 );
 
 INSERT INTO it_grundschutz_module VALUES ('ISMS_1','ISMS.1 Security Management'),

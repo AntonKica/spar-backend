@@ -13,7 +13,7 @@ use spar_backend::route::role::RoleRoute;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
+    env_logger::init_from_env(env_logger::Env::new().default_filter_or("debug"));
 
     let config = AppConfig::from_env();
     let db = create_connection(&config).await;

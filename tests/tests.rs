@@ -1,12 +1,13 @@
 use spar_backend::configuration::AppConfig;
 use spar_backend::create_connection;
 use spar_backend::enums::{BusinessProcessType, ModuleType};
-use spar_backend::model::{ApplicationCreateModel, AssetCreateModel, BusinessProcessCreateModel, ITSystemCreateModel, RoleCreateModel};
+use spar_backend::model::{ApplicationCreateModel, AssetCreateModel, BusinessProcessCreateModel, ITSystemCreateModel, RiskAnalysisProcessCreateModel, RoleCreateModel};
 use spar_backend::service::application_service::ApplicationService;
 use spar_backend::service::asset_service::AssetService;
 use spar_backend::service::business_process_service::BusinessProcessService;
 use spar_backend::service::GeneralService;
 use spar_backend::service::it_system_service::ITSystemService;
+use spar_backend::service::risk_analysis_process_service::RiskAnalysisProcessService;
 use spar_backend::service::role_service::RoleService;
 
 #[tokio::test]
@@ -20,23 +21,30 @@ async fn create_dummy_assets() {
 
     let mut tx = db.begin().await.unwrap();
 
-    AssetService::create(&mut tx, AssetCreateModel {
+    let virt_server = AssetService::create(&mut tx, AssetCreateModel {
         name: "dummy virtualizačný server".to_owned(),
         description: "bežia tu dev aplikáie".to_owned(),
         responsible: "IT administrátor".to_owned(),
     }).await.unwrap();
 
-    AssetService::create(&mut tx, AssetCreateModel {
+    let switch = AssetService::create(&mut tx, AssetCreateModel {
         name: "dummy switch".to_owned(),
         description: "rozdeľuje sieť na virtuálne podsiete".to_owned(),
         responsible: "sieťový administrátor".to_owned(),
     }).await.unwrap();
 
-    AssetService::create(&mut tx, AssetCreateModel {
+    let database = AssetService::create(&mut tx, AssetCreateModel {
         name: "dummy databáza".to_owned(),
         description: "sídlia tu všetky dáta".to_owned(),
         responsible: "IT administrátor".to_owned(),
     }).await.unwrap();
+
+    
+    let rap = RiskAnalysisProcessCreateModel {
+      target_objects_under_review: vec![virt_server, switch, database]  
+    };
+    
+    RiskAnalysisProcessService::create(&mut tx, rap).await.unwrap();
 
     tx.commit().await.unwrap();
 }

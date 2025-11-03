@@ -116,46 +116,11 @@ pub struct TargetObjectUnderReviewCreateModel {
     pub risk_analysis_process_code: String,
     pub asset_code: String,
 }
-impl BusinessProcessRoleCreateModel {
-    pub async fn assign(
-        &self,
-        tx: &mut PgConnection) -> Result<(), sqlx::Error> {
-        sqlx::query!(r#"INSERT INTO business_process__role(business_process_code, role_code) VALUES ($1,$2)"#,
-        self.business_process_code,
-        self.role_code,
-        )
-            .execute(tx)
-            .await?;
-        Ok(())
-    }
-}
 
-impl BusinessProcessApplicationCreateModel {
-    pub async fn assign(
-        tx: &mut PgConnection,
-        business_process_code: String,
-        role_code: String,
-    ) -> Result<(), sqlx::Error> {
-        sqlx::query!(r#"INSERT INTO business_process__role(business_process_code, role_code) VALUES ($1,$2)"#,
-        business_process_code,
-        role_code,
-        )
-            .execute(tx)
-            .await?;
-        Ok(())
-    }
-}
-
-pub async fn set_responsible(
-    business_process_code: String,
-    role_code: String,
-    tx: &mut PgConnection
-) -> Result<(), sqlx::Error> {
-    sqlx::query!(r#"UPDATE business_process SET responsible = $2 WHERE code = $1"#,
-        business_process_code,
-        role_code,
-        )
-        .execute(tx)
-        .await?;
-    Ok(())
+#[derive(Deserialize, Clone)]
+pub struct TOURElementaryThreatUpdateModel {
+    pub elementary_threat_code: String,
+    pub relevance: i32,
+    pub comment: String,
+    pub reviewed: bool
 }

@@ -1,4 +1,4 @@
-use crate::model::{RiskAnalysisProcessCreateModel, TargetObjectUnderReviewCreateModel};
+use crate::model::{RiskAnalysisProcessCreateModel, TOURElementaryThreatUpdateModel, TargetObjectUnderReviewCreateModel};
 use crate::response::RiskAnalysisProcessResponse;
 use crate::service::{next_code_for, ApiError, ApiResult, GeneralService};
 use crate::workflow::create_risk_analysis_process_workflow;
@@ -156,7 +156,7 @@ impl From<TOURThreatOverviewModel> for TOURThreatOverviewResponse {
 }
 
 pub struct TOURElementaryThreatModel {
-    pub elementary_threat_name: String,
+    pub elementary_threat_code: String,
     pub relevance: i32,
     pub comment: String,
     pub reviewed: bool,
@@ -164,7 +164,7 @@ pub struct TOURElementaryThreatModel {
 
 #[derive(Serialize)]
 pub struct TOURElementaryThreatResponse {
-    pub elementary_threat_name: String,
+    pub elementary_threat_code: String,
     pub relevance: i32,
     pub comment: String,
     pub reviewed: bool,
@@ -173,7 +173,7 @@ pub struct TOURElementaryThreatResponse {
 impl From<TOURElementaryThreatModel> for TOURElementaryThreatResponse {
     fn from(model: TOURElementaryThreatModel) -> Self {
         Self {
-            elementary_threat_name: model.elementary_threat_name,
+            elementary_threat_code: model.elementary_threat_code,
             relevance: model.relevance,
             comment: model.comment,
             reviewed: model.reviewed,
@@ -214,7 +214,7 @@ ORDER BY CODE
         let res: Vec<TOURElementaryThreatModel> =  sqlx::query_as!(TOURElementaryThreatModel,
             r#"
             SELECT
-            iget.name AS elementary_threat_name,
+            iget.code AS elementary_threat_code,
             tet.relevance,
             tet.comment,
             tet.reviewed
@@ -222,12 +222,46 @@ ORDER BY CODE
             INNER JOIN it_grundschutz_elementary_threat AS iget ON iget.code = tet.it_grundschutz_elementary_threat_code
             INNER JOIN asset AS a ON a.code = tet.asset_code
             WHERE tet.risk_analysis_process_code = $1 AND tet.asset_code = $2
-            ORDER BY iget.code
+            ORDER BY iget._order
             "#,
             code,
             asset
         ).fetch_all(db).await?;
 
         Ok(res.into_iter().map(TOURElementaryThreatResponse::from).collect())
+    }
+
+    pub async fn update_elementary_threat_list(db: &Pool<Postgres>, code: String, asset: String, update: Vec<TOURElementaryThreatUpdateModel>) -> ApiResult<()>{
+        sqlx::query(r#"
+            INSERT INTO tour_elementary_threat (
+                risk_analysis_process_code,
+                asset_code,
+                it_grundschutz_elementary_threat_code,
+                relevance,
+                comment,
+                reviewed
+            ) SELECT * FROM UNNEST(
+                $1::CHAR(8)[],
+                $2::VARCHAR(20)[],
+                $3::VARCHAR(20)[],
+                $4::INTEGER[],
+                $5::TEXT[],
+                $6::BOOLEAN[]
+            ) ON CONFLICT (risk_analysis_process_code, asset_code, it_grundschutz_elementary_threat_code) DO UPDATE SET
+                relevance = EXCLUDED.relevance,
+                comment = EXCLUDED.comment,
+                reviewed = EXCLUDED.reviewed
+            "#
+        )
+            .bind(vec![code.to_owned(); update.len()])
+            .bind(vec![asset.to_owned(); update.len()])
+            .bind(update.iter().map(|i| i.elementary_threat_code.clone()).collect::<Vec<String>>())
+            .bind(update.iter().map(|i| i.relevance.clone()).collect::<Vec<i32>>())
+            .bind(update.iter().map(|i| i.comment.clone()).collect::<Vec<String>>())
+            .bind(update.iter().map(|i| i.reviewed.clone()).collect::<Vec<bool>>())
+            .fetch_all(db)
+            .await?;
+
+        Ok(())
     }
 }

@@ -25,7 +25,8 @@ pub enum ApiError {
 impl ResponseError for ApiError {
     fn error_response(&self) -> HttpResponse {
         match self {
-            ApiError::Database(_) => {
+            ApiError::Database(e) => {
+                println!("{e}");
                 HttpResponse::InternalServerError().json(serde_json::json!({
                     "status": "error",
                     "message": "Database error occurred"

@@ -1,3 +1,4 @@
+use crate::model::TOURElementaryThreatUpdateModel;
 use crate::route::RiskAnalysisProcessCreateModel;
 use crate::api::ApiResponse;
 use crate::configuration::AppState;
@@ -5,6 +6,7 @@ use crate::route::GeneralRoute;
 use crate::service::{ApiError, GeneralService};
 use actix_web::web::Path;
 use actix_web::{get, post, web, HttpResponse, Responder, ResponseError, Scope};
+use crate::model::TargetObjectUnderReviewCreateModel;
 use crate::service::risk_analysis_process_service::RiskAnalysisProcessService;
 
 pub struct RiskAnalysisProcessRoute {}
@@ -17,6 +19,7 @@ impl GeneralRoute for RiskAnalysisProcessRoute {
             .service(risk_analysis_process_create)
             .service(threat_overview_list)
             .service(elementary_threat_list)
+            .service(elementary_threat_list_update)
     }
 }
 
@@ -66,7 +69,7 @@ pub async fn risk_analysis_process_create(
     }
 }
 
-#[get("/{code}/threat-overview")]
+#[get("/{code}/threat-overview/")]
 pub async fn threat_overview_list(
     data: web::Data<AppState>,
     path: Path<String>
@@ -85,6 +88,19 @@ pub async fn elementary_threat_list(
 ) -> impl Responder {
     let (code, asset) = path.into_inner();
     match RiskAnalysisProcessService::get_elementary_threat_list(&data.db, code, asset).await {
+        Ok(data) => HttpResponse::Ok().json(ApiResponse::new(data)),
+        Err(e) => e.error_response()
+    }
+}
+
+#[post("/{code}/elementary-threat/{asset}")]
+pub async fn elementary_threat_list_update(
+    data: web::Data<AppState>,
+    body: web::Json<Vec<TOURElementaryThreatUpdateModel>>,
+    path: Path<(String, String)>
+) -> impl Responder {
+    let (code, asset) = path.into_inner();
+    match RiskAnalysisProcessService::update_elementary_threat_list(&data.db, code, asset, body.0).await {
         Ok(data) => HttpResponse::Ok().json(ApiResponse::new(data)),
         Err(e) => e.error_response()
     }
