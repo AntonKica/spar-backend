@@ -124,3 +124,19 @@ pub struct TOURElementaryThreatUpdateModel {
     pub comment: String,
     pub reviewed: bool
 }
+
+#[derive(Deserialize, Clone)]
+pub struct TOURSpecificThreatCreateModel {
+    pub name: String,
+    pub description: String,
+}
+
+pub struct TOURSpecificThreatModel {
+    pub code: String,
+    pub name: String,
+    pub description: String,
+}
+
+pub struct TOURSpecificThreatOverviewModel {
+    pub reviewed: bool,
+}

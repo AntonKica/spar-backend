@@ -1,9 +1,10 @@
-use crate::model::{RiskAnalysisProcessCreateModel, TOURElementaryThreatUpdateModel, TargetObjectUnderReviewCreateModel};
+use crate::model::{RiskAnalysisProcessCreateModel, TOURElementaryThreatUpdateModel, TOURSpecificThreatCreateModel, TOURSpecificThreatModel, TOURSpecificThreatOverviewModel, TargetObjectUnderReviewCreateModel};
 use crate::response::RiskAnalysisProcessResponse;
-use crate::service::{next_code_for, ApiError, ApiResult, GeneralService};
+use crate::service::{next_code_for, next_code_for_db, ApiError, ApiResult, GeneralService};
 use crate::workflow::create_risk_analysis_process_workflow;
 use crate::workflow_model::{create_workflow_model, WorkflowModel};
 use chrono::{NaiveDate, Utc};
+use serde::de::Unexpected::Str;
 use serde::Serialize;
 use serde_json::{json, Value};
 use sqlx::{PgConnection, Pool, Postgres};
@@ -63,16 +64,14 @@ impl GeneralService<RiskAnalysisProcessResponse, RiskAnalysisProcessCreateModel>
             .await?;
 
 
-        let query = r"
+        sqlx::query(r#"
             INSERT INTO target_object_under_review (
                 risk_analysis_process_code,
                 asset_code
             ) SELECT * FROM UNNEST(
                 $1::CHAR(8)[],
                 $2::VARCHAR(20)[]
-            ) ON CONFLICT DO NOTHING";
-
-        sqlx::query(query)
+            );"#)
             .bind(vec![code.to_owned(); create_model.target_objects_under_review.len()])
             .bind(&create_model.target_objects_under_review)
             .fetch_all(&mut *tx)
@@ -94,6 +93,24 @@ INNER JOIN target_object_under_review ON target_object_under_review.risk_analysi
             ElementaryThreatRelevance::IRRELEVANT as i32
         )
             .execute(&mut *tx)
+            .await?;
+
+        sqlx::query(r#"
+            INSERT INTO tour_specific_threat_overview (
+                risk_analysis_process_code,
+                asset_code,
+                reviewed
+            ) SELECT * FROM UNNEST(
+                $1::CHAR(8)[],
+                $2::VARCHAR(20)[],
+                $3::BOOLEAN[]
+            );
+            "#
+        )
+            .bind(vec![code.to_owned(); create_model.target_objects_under_review.len()])
+            .bind(&create_model.target_objects_under_review)
+            .bind(vec![false; create_model.target_objects_under_review.len()])
+            .fetch_all(&mut *tx)
             .await?;
 
         Ok(code)
@@ -132,7 +149,7 @@ pub struct TOURThreatOverviewModel {
     pub asset_name: String,
     // TODO BUG WITH QUERY WHICH SHOULD EXPECT BOOL instead of OPTION
     pub identified_basic_threat: Option<bool>,
-    pub identified_supplementary_threat: Option<bool>,
+    pub identified_specific_threat: Option<bool>,
 }
 
 #[derive(Serialize)]
@@ -142,7 +159,7 @@ pub struct TOURThreatOverviewResponse {
     // TODO BUG WITH QUERY WHICH SHOULD EXPECT BOOL instead of OPTION
     // https://github.com/launchbadge/sqlx/issues/4065
     pub identified_basic_threat: bool,
-    pub identified_supplementary_threat: bool,
+    pub identified_specific_threat: bool,
 }
 impl From<TOURThreatOverviewModel> for TOURThreatOverviewResponse {
     fn from(model: TOURThreatOverviewModel) -> Self {
@@ -150,7 +167,7 @@ impl From<TOURThreatOverviewModel> for TOURThreatOverviewResponse {
             asset_name: model.asset_name,
             asset_code: model.asset_code,
             identified_basic_threat: model.identified_basic_threat.unwrap(),
-            identified_supplementary_threat: model.identified_supplementary_threat.unwrap(),
+            identified_specific_threat: model.identified_specific_threat.unwrap(),
         }
     }
 }
@@ -180,9 +197,40 @@ impl From<TOURElementaryThreatModel> for TOURElementaryThreatResponse {
         }
     }
 }
+
+#[derive(Serialize)]
+pub struct TOURSpecificThreatResponse {
+    pub code: String,
+    pub name: String,
+    pub description: String,
+}
+
+impl From<TOURSpecificThreatModel> for TOURSpecificThreatResponse {
+    fn from(model: TOURSpecificThreatModel) -> Self {
+        Self {
+            code: model.code,
+            name: model.name,
+            description: model.description,
+        }
+    }
+}
+
+#[derive(Serialize)]
+pub struct TOURSpecificThreatOverviewResponse {
+    pub reviewed: bool,
+}
+
+impl From<TOURSpecificThreatOverviewModel> for TOURSpecificThreatOverviewResponse {
+    fn from(model: TOURSpecificThreatOverviewModel) -> Self {
+        Self {
+            reviewed: model.reviewed,
+        }
+    }
+}
+
 impl RiskAnalysisProcessService {
     pub async fn get_threat_overview(db: &Pool<Postgres>, code: String) -> ApiResult<Vec<TOURThreatOverviewResponse>>{
-        let res: Vec<TOURThreatOverviewModel> =  sqlx::query_as!(TOURThreatOverviewModel,
+        let res: Vec<TOURThreatOverviewModel> = sqlx::query_as!(TOURThreatOverviewModel,
             r#"
 SELECT
     asset.code AS asset_code,
@@ -197,9 +245,10 @@ SELECT
         ) THEN FALSE
         ELSE TRUE
         END AS identified_basic_threat,
-    FALSE AS identified_supplementary_threat
+    tour_specific_threat_overview.reviewed AS identified_specific_threat
 FROM asset
          INNER JOIN target_object_under_review ON asset.code = target_object_under_review.asset_code
+         INNER JOIN tour_specific_threat_overview ON asset.code = tour_specific_threat_overview.asset_code AND tour_specific_threat_overview.risk_analysis_process_code = $1
 WHERE target_object_under_review.risk_analysis_process_code = $1
 ORDER BY CODE
             "#,
@@ -261,6 +310,98 @@ ORDER BY CODE
             .bind(update.iter().map(|i| i.reviewed.clone()).collect::<Vec<bool>>())
             .fetch_all(db)
             .await?;
+
+        Ok(())
+    }
+
+    pub async fn get_specific_threat_list(db: &Pool<Postgres>, code: String, asset: String) -> ApiResult<Vec<TOURSpecificThreatResponse>>{
+        let res: Vec<TOURSpecificThreatModel> =  sqlx::query_as!(TOURSpecificThreatModel,
+            r#"
+            SELECT code, name, description
+            FROM tour_specific_threat
+            WHERE risk_analysis_process_code = $1 AND asset_code = $2
+            ORDER BY code
+            "#,
+            code,
+            asset
+        ).fetch_all(db).await?;
+
+        Ok(res.into_iter().map(TOURSpecificThreatResponse::from).collect())
+    }
+    pub async fn create_elementary_threat(db: &Pool<Postgres>, rap: String, asset: String, create: TOURSpecificThreatCreateModel) -> ApiResult<String> {
+        let code = next_code_for_db("tour_specific_threat","THR", 10, db).await?;
+
+        sqlx::query!(
+        r#"INSERT INTO tour_specific_threat(code, risk_analysis_process_code, asset_code, name, description) VALUES ($1,$2,$3,$4,$5)"#,
+            code,
+            rap,
+            asset,
+            create.name,
+            create.description
+        )
+            .execute(db)
+            .await?;
+
+        Ok(code)
+    }
+    pub async fn delete_elementary_threat(db: &Pool<Postgres>, rap: String, asset: String, threat: String) -> ApiResult<()> {
+        sqlx::query!(
+            r#"
+            DELETE FROM tour_specific_threat
+            WHERE code = $1 AND risk_analysis_process_code = $2 AND asset_code = $3
+            "#,
+            threat,
+            rap,
+            asset
+        ).fetch_all(db).await?;
+
+        Ok(())
+    }
+    pub async fn update_elementary_threat(db: &Pool<Postgres>, rap: String, asset: String, threat: String, update: TOURSpecificThreatCreateModel) -> ApiResult<()> {
+        sqlx::query!(
+        r#"UPDATE tour_specific_threat
+        SET name = $4, description = $5
+        WHERE code = $1 AND risk_analysis_process_code = $2 AND asset_code = $3"#,
+            threat,
+            rap,
+            asset,
+            update.name,
+            update.description
+        )
+            .execute(db)
+            .await?;
+
+        Ok(())
+    }
+    pub async fn get_specific_threat_overview(db: &Pool<Postgres>, rap: String, asset: String) -> ApiResult<(TOURSpecificThreatOverviewResponse)> {
+        let res: TOURSpecificThreatOverviewModel =  sqlx::query_as!(TOURSpecificThreatOverviewModel,
+            r#"
+            SELECT reviewed
+            FROM tour_specific_threat_overview
+            WHERE risk_analysis_process_code = $1 AND asset_code = $2
+            "#,
+            rap,
+            asset
+        )
+            .fetch_optional(db).await?
+            .ok_or_else(|| ApiError::NotFound(format!("Specific threat with code {} asset {} not found", rap, asset)))?;
+
+        Ok(TOURSpecificThreatOverviewResponse::from(res))
+    }
+
+    pub async fn specific_threat_overview_set_reviewed(db: &Pool<Postgres>, rap: String, asset: String, value: bool) -> ApiResult<()> {
+        sqlx::query!(
+            r#"
+            UPDATE tour_specific_threat_overview
+            SET reviewed = $3
+            WHERE risk_analysis_process_code = $1 AND asset_code = $2
+            "#,
+            rap,
+            asset,
+            value
+
+        )
+            .execute(db).await?;
 
         Ok(())
     }

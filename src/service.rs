@@ -56,7 +56,38 @@ impl ResponseError for ApiError {
 
 pub type ApiResult<T> = Result<T, ApiError>;
 
-pub async fn next_code_for(
+pub async fn next_code_for_db(
+    table: &str,
+    acronym: &str,
+    code_length: usize,
+    db: &Pool<Postgres>
+) -> ApiResult<String> {
+    // TOTAL LENGTH - STRING - '-'
+    let prefix = format!("{acronym}-");
+    let number_length = code_length - prefix.len();
+
+    let query = format!("SELECT code FROM {table} ORDER BY code DESC LIMIT 1");
+    let top_code: Option<String> = sqlx::query_scalar(&query).fetch_optional(db).await?;
+    let next_number = match top_code {
+        Some(code) => {
+            code.strip_prefix(&prefix)
+                .ok_or_else(|| {
+                    error!("Invalid code format {}", code.to_owned());
+                    ApiError::Internal
+                })?
+                .parse::<usize>()
+                .map_err(|e| {
+                    error!("Invalid code number {e}");
+                    ApiError::Internal
+                })?
+                + 1
+        }
+        None => 1
+    };
+    Ok(format!("{prefix}{next_number:0number_length$}"))
+}
+
+    pub async fn next_code_for(
     table: &str,
     acronym: &str,
     code_length: usize,

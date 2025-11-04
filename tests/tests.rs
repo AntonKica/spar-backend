@@ -15,6 +15,9 @@ async fn create_dummy_assets() {
     let config = AppConfig::from_env();
     let db = create_connection(&config).await;
 
+    sqlx::query("DELETE FROM tour_elementary_threat").execute(&db).await.unwrap();
+    sqlx::query("DELETE FROM tour_specific_threat").execute(&db).await.unwrap();
+    sqlx::query("DELETE FROM tour_specific_threat_overview").execute(&db).await.unwrap();
     sqlx::query("DELETE FROM target_object_under_review").execute(&db).await.unwrap();
     sqlx::query("DELETE FROM risk_analysis_process").execute(&db).await.unwrap();
     sqlx::query("DELETE FROM asset").execute(&db).await.unwrap();

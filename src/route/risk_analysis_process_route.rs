@@ -1,11 +1,11 @@
-use crate::model::TOURElementaryThreatUpdateModel;
+use crate::model::{TOURElementaryThreatUpdateModel, TOURSpecificThreatCreateModel};
 use crate::route::RiskAnalysisProcessCreateModel;
 use crate::api::ApiResponse;
 use crate::configuration::AppState;
 use crate::route::GeneralRoute;
 use crate::service::{ApiError, GeneralService};
 use actix_web::web::Path;
-use actix_web::{get, post, web, HttpResponse, Responder, ResponseError, Scope};
+use actix_web::{get, post, delete, web, HttpResponse, Responder, ResponseError, Scope};
 use crate::model::TargetObjectUnderReviewCreateModel;
 use crate::service::risk_analysis_process_service::RiskAnalysisProcessService;
 
@@ -20,6 +20,12 @@ impl GeneralRoute for RiskAnalysisProcessRoute {
             .service(threat_overview_list)
             .service(elementary_threat_list)
             .service(elementary_threat_list_update)
+            .service(specific_threat_list)
+            .service(specific_threat_create)
+            .service(specific_threat_update)
+            .service(specific_threat_delete)
+            .service(specific_threat_overview)
+            .service(specific_threat_overview_set_reviewed)
     }
 }
 
@@ -101,6 +107,78 @@ pub async fn elementary_threat_list_update(
 ) -> impl Responder {
     let (code, asset) = path.into_inner();
     match RiskAnalysisProcessService::update_elementary_threat_list(&data.db, code, asset, body.0).await {
+        Ok(data) => HttpResponse::Ok().json(ApiResponse::new(data)),
+        Err(e) => e.error_response()
+    }
+}
+
+#[get("/{code}/specific-threat/{asset}/")]
+pub async fn specific_threat_list(
+    data: web::Data<AppState>,
+    path: Path<(String, String)>
+) -> impl Responder {
+    let (code, asset) = path.into_inner();
+    match RiskAnalysisProcessService::get_specific_threat_list(&data.db, code, asset).await {
+        Ok(data) => HttpResponse::Ok().json(ApiResponse::new(data)),
+        Err(e) => e.error_response()
+    }
+}
+
+#[post("/{code}/specific-threat/{asset}")]
+pub async fn specific_threat_create(
+    data: web::Data<AppState>,
+    body: web::Json<TOURSpecificThreatCreateModel>,
+    path: Path<(String, String)>
+) -> impl Responder {
+    let (code, asset) = path.into_inner();
+    match RiskAnalysisProcessService::create_elementary_threat(&data.db, code, asset, body.0).await {
+        Ok(data) => HttpResponse::Ok().json(ApiResponse::new(data)),
+        Err(e) => e.error_response()
+    }
+}
+
+#[post("/{code}/specific-threat/{asset}/{threat}")]
+pub async fn specific_threat_update(
+    data: web::Data<AppState>,
+    body: web::Json<TOURSpecificThreatCreateModel>,
+    path: Path<(String, String, String)>
+) -> impl Responder {
+    let (code, asset, threat) = path.into_inner();
+    match RiskAnalysisProcessService::update_elementary_threat(&data.db, code, asset, threat, body.0).await {
+        Ok(data) => HttpResponse::Ok().json(ApiResponse::new(data)),
+        Err(e) => e.error_response()
+    }
+}
+#[delete("/{code}/specific-threat/{asset}/{threat}")]
+pub async fn specific_threat_delete(
+    data: web::Data<AppState>,
+    path: Path<(String, String, String)>
+) -> impl Responder {
+    let (code, asset, threat) = path.into_inner();
+    match RiskAnalysisProcessService::delete_elementary_threat(&data.db, code, asset, threat).await {
+        Ok(data) => HttpResponse::Ok().json(ApiResponse::new(data)),
+        Err(e) => e.error_response()
+    }
+}
+
+#[get("/{code}/specific-threat/{asset}/overview")]
+pub async fn specific_threat_overview(
+    data: web::Data<AppState>,
+    path: Path<(String, String)>
+) -> impl Responder {
+    let (code, asset) = path.into_inner();
+    match RiskAnalysisProcessService::get_specific_threat_overview(&data.db, code, asset).await {
+        Ok(data) => HttpResponse::Ok().json(ApiResponse::new(data)),
+        Err(e) => e.error_response()
+    }
+}
+#[post("/{code}/specific-threat/{asset}/overview/reviewed/{value}")]
+pub async fn specific_threat_overview_set_reviewed(
+    data: web::Data<AppState>,
+    path: Path<(String, String, bool)>
+) -> impl Responder {
+    let (code, asset, reviwed) = path.into_inner();
+    match RiskAnalysisProcessService::specific_threat_overview_set_reviewed(&data.db, code, asset, reviwed).await {
         Ok(data) => HttpResponse::Ok().json(ApiResponse::new(data)),
         Err(e) => e.error_response()
     }
