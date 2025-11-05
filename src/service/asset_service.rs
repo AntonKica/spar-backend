@@ -16,9 +16,20 @@ impl GeneralService<(), AssetCreateModel> for AssetService {
     ) -> ApiResult<String> {
         let code = next_code_for(Self::TABLE_NAME, Self::CODE_PREFIX, Self::CODE_DIGITS, tx).await?;
         sqlx::query!(
-        r#"INSERT INTO asset(code, name, description, responsible) VALUES ($1,$2,$3,$4)"#,
+        r#"INSERT INTO asset(code,
+                             name,
+                             confidentiality_protection_needs,
+                             integrity_protection_needs,
+                             availability_protection_needs,
+                             description,
+                             responsible)
+
+                             VALUES ($1,$2,$3,$4,$5,$6,$7)"#,
         code,
         create_model.name,
+        create_model.confidentiality_protection_needs as i32,
+        create_model.integrity_protection_needs as i32,
+        create_model.availability_protection_needs as i32,
         create_model.description,
             create_model.responsible,
         )

@@ -4,7 +4,7 @@ use log::error;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use sqlx::{PgConnection};
-use crate::enums::{BusinessProcessType, ModuleType};
+use crate::enums::{BusinessProcessType, ModuleType, ProtectionNeeds};
 use crate::service::{ApiError, ApiResult};
 
 #[derive(Debug, Clone)]
@@ -97,6 +97,9 @@ pub struct AssetCreateModel {
     pub name: String,
     pub description: String,
     pub responsible: String,
+    pub confidentiality_protection_needs: ProtectionNeeds,
+    pub integrity_protection_needs: ProtectionNeeds,
+    pub availability_protection_needs: ProtectionNeeds,
 }
 #[derive(Serialize)]
 pub struct AssetModel {
@@ -104,6 +107,10 @@ pub struct AssetModel {
     pub name: String,
     pub description: String,
     pub responsible: String,
+    // TODO maybe enum values?
+    pub confidentiality_protection_needs: i32,
+    pub integrity_protection_needs: i32,
+    pub availability_protection_needs: i32,
 }
 
 #[derive(Debug, Clone, Deserialize)]

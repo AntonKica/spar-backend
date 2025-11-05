@@ -3,6 +3,39 @@ use crate::response::EnumResponse;
 
 #[repr(i32)]
 #[derive(Debug, Copy, Clone, EnumIter)]
+pub enum ProtectionNeeds {
+    Normal,
+    High,
+    VeryHigh,
+}
+
+impl From<ProtectionNeeds> for EnumResponse {
+    fn from(value: ProtectionNeeds) -> Self {
+        match value {
+            ProtectionNeeds::Normal => {
+                EnumResponse {
+                    code: ProtectionNeeds::Normal as i32,
+                    name: "normálna".to_owned()
+                }
+            }
+            ProtectionNeeds::High => {
+                EnumResponse {
+                    code: ProtectionNeeds::High as i32,
+                    name: "vysoká".to_owned()
+                }
+            }
+            ProtectionNeeds::VeryHigh => {
+                EnumResponse {
+                    code: ProtectionNeeds::VeryHigh as i32,
+                    name: "veľmi vysoká".to_owned()
+                }
+            }
+        }
+    }
+}
+
+#[repr(i32)]
+#[derive(Debug, Copy, Clone, EnumIter)]
 pub enum ElementaryThreatRelevance {
     DIRECT,
     INDIRECT,

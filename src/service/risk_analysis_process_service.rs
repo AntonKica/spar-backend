@@ -147,6 +147,9 @@ INNER JOIN target_object_under_review ON target_object_under_review.risk_analysi
 pub struct TOURThreatOverviewModel {
     pub asset_code: String,
     pub asset_name: String,
+    pub confidentiality_protection_needs: i32,
+    pub integrity_protection_needs: i32,
+    pub availability_protection_needs: i32,
     // TODO BUG WITH QUERY WHICH SHOULD EXPECT BOOL instead of OPTION
     pub identified_basic_threat: Option<bool>,
     pub identified_specific_threat: Option<bool>,
@@ -156,6 +159,9 @@ pub struct TOURThreatOverviewModel {
 pub struct TOURThreatOverviewResponse {
     pub asset_code: String,
     pub asset_name: String,
+    pub confidentiality_protection_needs: i32,
+    pub integrity_protection_needs: i32,
+    pub availability_protection_needs: i32,
     // TODO BUG WITH QUERY WHICH SHOULD EXPECT BOOL instead of OPTION
     // https://github.com/launchbadge/sqlx/issues/4065
     pub identified_basic_threat: bool,
@@ -166,6 +172,9 @@ impl From<TOURThreatOverviewModel> for TOURThreatOverviewResponse {
         Self {
             asset_name: model.asset_name,
             asset_code: model.asset_code,
+            confidentiality_protection_needs: model.confidentiality_protection_needs,
+            integrity_protection_needs: model.integrity_protection_needs,
+            availability_protection_needs: model.availability_protection_needs,
             identified_basic_threat: model.identified_basic_threat.unwrap(),
             identified_specific_threat: model.identified_specific_threat.unwrap(),
         }
@@ -235,6 +244,9 @@ impl RiskAnalysisProcessService {
 SELECT
     asset.code AS asset_code,
     asset.name AS asset_name,
+    asset.confidentiality_protection_needs,
+    asset.integrity_protection_needs,
+    asset.availability_protection_needs,
     CASE
         WHEN EXISTS (
             SELECT 1

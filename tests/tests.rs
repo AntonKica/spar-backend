@@ -1,6 +1,6 @@
 use spar_backend::configuration::AppConfig;
 use spar_backend::create_connection;
-use spar_backend::enums::{BusinessProcessType, ModuleType};
+use spar_backend::enums::{BusinessProcessType, ModuleType, ProtectionNeeds};
 use spar_backend::model::{ApplicationCreateModel, AssetCreateModel, BusinessProcessCreateModel, ITSystemCreateModel, RiskAnalysisProcessCreateModel, RoleCreateModel};
 use spar_backend::service::application_service::ApplicationService;
 use spar_backend::service::asset_service::AssetService;
@@ -27,6 +27,9 @@ async fn create_dummy_assets() {
     let virt_server = AssetService::create(&mut tx, AssetCreateModel {
         name: "dummy virtualizačný server".to_owned(),
         description: "bežia tu dev aplikáie".to_owned(),
+        confidentiality_protection_needs: ProtectionNeeds::High,
+        integrity_protection_needs: ProtectionNeeds::High,
+        availability_protection_needs: ProtectionNeeds::High,
         responsible: "IT administrátor".to_owned(),
     }).await.unwrap();
 
@@ -34,12 +37,18 @@ async fn create_dummy_assets() {
         name: "dummy switch".to_owned(),
         description: "rozdeľuje sieť na virtuálne podsiete".to_owned(),
         responsible: "sieťový administrátor".to_owned(),
+        confidentiality_protection_needs: ProtectionNeeds::Normal,
+        integrity_protection_needs: ProtectionNeeds::Normal,
+        availability_protection_needs: ProtectionNeeds::High,
     }).await.unwrap();
 
     let database = AssetService::create(&mut tx, AssetCreateModel {
         name: "dummy databáza".to_owned(),
         description: "sídlia tu všetky dáta".to_owned(),
         responsible: "IT administrátor".to_owned(),
+        confidentiality_protection_needs: ProtectionNeeds::VeryHigh,
+        integrity_protection_needs: ProtectionNeeds::VeryHigh,
+        availability_protection_needs: ProtectionNeeds::VeryHigh,
     }).await.unwrap();
 
     

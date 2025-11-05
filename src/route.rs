@@ -12,7 +12,7 @@ use serde::{Serialize};
 use strum::IntoEnumIterator;
 use crate::api::{ApiResponse};
 use crate::configuration::AppState;
-use crate::enums::{ModuleType, ElementaryThreatRelevance};
+use crate::enums::{ModuleType, ElementaryThreatRelevance, ProtectionNeeds};
 use crate::model::{RiskAnalysisProcessCreateModel};
 use crate::response::{EnumResponse};
 use crate::service::application_service::ApplicationService;
@@ -31,6 +31,7 @@ impl GeneralRoute for OtherRotes {
     fn routes() -> Scope {
         web::scope("")
             .service(enum_module_type_list)
+            .service(enum_protection_needs_list)
             .service(bsi_it_grundschutz_module)
             .service(bsi_it_grundschutz_elementary_threat)
             .service(asset_list)
@@ -107,6 +108,14 @@ pub async fn enum_module_type_list(
     data: web::Data<AppState>,
 ) -> impl Responder {
     let data: Vec<EnumResponse> = ModuleType::iter().filter(|mt| !matches!(mt, ModuleType::UNKNOWN)).map(EnumResponse::from).collect();
+    HttpResponse::Ok().json(ApiResponse::new(data))
+}
+
+#[get("/enum/protection-needs/")]
+pub async fn enum_protection_needs_list(
+    data: web::Data<AppState>,
+) -> impl Responder {
+    let data: Vec<EnumResponse> = ProtectionNeeds::iter().map(EnumResponse::from).collect();
     HttpResponse::Ok().json(ApiResponse::new(data))
 }
 

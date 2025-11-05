@@ -1,5 +1,8 @@
 CREATE TABLE asset(code VARCHAR(20) NOT NULL PRIMARY KEY,
                    name VARCHAR(80) NOT NULL,
+                   confidentiality_protection_needs INTEGER NOT NULL,
+                   integrity_protection_needs INTEGER NOT NULL,
+                   availability_protection_needs INTEGER NOT NULL,
                    description VARCHAR(400) NOT NULL,
                    responsible VARCHAR(40) NOT NULL
 );
