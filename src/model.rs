@@ -1,3 +1,5 @@
+pub mod risk_classsification_model;
+
 use actix_web::{HttpResponse, ResponseError};
 use chrono::{NaiveDate, Utc};
 use log::error;
@@ -6,7 +8,7 @@ use serde_json::{json, Value};
 use sqlx::{PgConnection};
 use crate::enums::{BusinessProcessType, ModuleType, ProtectionNeeds};
 use crate::service::{ApiError, ApiResult};
-
+ 
 #[derive(Debug, Clone)]
 pub struct BusinessProcessModel {
     pub code: String,
@@ -136,12 +138,18 @@ pub struct TOURElementaryThreatUpdateModel {
 pub struct TOURSpecificThreatCreateModel {
     pub name: String,
     pub description: String,
+    pub confidentiality_impaired: bool,
+    pub integrity_impaired: bool,
+    pub availability_impaired: bool,
 }
 
 pub struct TOURSpecificThreatModel {
     pub code: String,
     pub name: String,
     pub description: String,
+    pub confidentiality_impaired: bool,
+    pub integrity_impaired: bool,
+    pub availability_impaired: bool,
 }
 
 pub struct TOURSpecificThreatOverviewModel {

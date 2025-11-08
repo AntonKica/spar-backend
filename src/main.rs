@@ -7,9 +7,10 @@ use spar_backend::create_connection;
 use spar_backend::route::application_route::ApplicationRoute;
 use spar_backend::route::business_process_route::BusinessProcessRoute;
 use spar_backend::route::{GeneralRoute, OtherRotes};
+use spar_backend::route::enum_route::EnumRoute;
 use spar_backend::route::it_system_route::ITSystemRoute;
 use spar_backend::route::risk_analysis_process_route::RiskAnalysisProcessRoute;
-use spar_backend::route::role::RoleRoute;
+use spar_backend::route::role_route::RoleRoute;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -29,6 +30,7 @@ async fn main() -> std::io::Result<()> {
                     .service(ApplicationRoute::routes())
                     .service(ITSystemRoute::routes())
                     .service(RiskAnalysisProcessRoute::routes())
+                    .service(EnumRoute::routes())
                     .service(OtherRotes::routes())
             )
     })

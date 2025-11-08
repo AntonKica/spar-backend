@@ -4,11 +4,11 @@ use crate::service::{next_code_for, next_code_for_db, ApiError, ApiResult, Gener
 use crate::workflow::create_risk_analysis_process_workflow;
 use crate::workflow_model::{create_workflow_model, WorkflowModel};
 use chrono::{NaiveDate, Utc};
-use serde::de::Unexpected::Str;
 use serde::Serialize;
 use serde_json::{json, Value};
-use sqlx::{PgConnection, Pool, Postgres};
+use sqlx::{Executor, PgConnection, Pool, Postgres};
 use crate::enums::ElementaryThreatRelevance;
+use crate::service::risk_classification_service::RiskClassificationService;
 
 pub struct RiskAnalysisProcessService;
 
@@ -46,7 +46,7 @@ impl GeneralService<RiskAnalysisProcessResponse, RiskAnalysisProcessCreateModel>
         tx: &mut PgConnection,
         create_model: RiskAnalysisProcessCreateModel
     ) -> ApiResult<String> {
-        let code = match next_code_for(Self::TABLE_NAME, Self::CODE_PREFIX, Self::CODE_DIGITS, tx).await {
+        let code = match next_code_for(Self::TABLE_NAME, Self::CODE_PREFIX, Self::CODE_DIGITS, &mut *tx).await {
             Ok(val) => val,
             Err(_) => return Err(ApiError::Internal)
         };
@@ -115,7 +115,8 @@ INNER JOIN target_object_under_review ON target_object_under_review.risk_analysi
 
         Ok(code)
     }
-    async fn list(db: &Pool<Postgres>) -> ApiResult<Vec<RiskAnalysisProcessResponse>> {
+    async fn list(db: &Pool<Postgres>) -> ApiResult<Vec<RiskAnalysisProcessResponse>>
+    {
         let rows = sqlx::query_as!(RiskAnalysisProcessRow, r#"SELECT * FROM risk_analysis_process"#)
             .fetch_all(db)
             .await?;
@@ -238,7 +239,8 @@ impl From<TOURSpecificThreatOverviewModel> for TOURSpecificThreatOverviewRespons
 }
 
 impl RiskAnalysisProcessService {
-    pub async fn get_threat_overview(db: &Pool<Postgres>, code: String) -> ApiResult<Vec<TOURThreatOverviewResponse>>{
+    pub async fn get_threat_overview(db: &Pool<Postgres>, code: String) -> ApiResult<Vec<TOURThreatOverviewResponse>>
+    {
         let res: Vec<TOURThreatOverviewModel> = sqlx::query_as!(TOURThreatOverviewModel,
             r#"
 SELECT
@@ -271,7 +273,8 @@ ORDER BY CODE
     }
 
 
-    pub async fn get_elementary_threat_list(db: &Pool<Postgres>, code: String, asset: String) -> ApiResult<Vec<TOURElementaryThreatResponse>>{
+    pub async fn get_elementary_threat_list(db: &Pool<Postgres>, code: String, asset: String) -> ApiResult<Vec<TOURElementaryThreatResponse>>
+    {
         let res: Vec<TOURElementaryThreatModel> =  sqlx::query_as!(TOURElementaryThreatModel,
             r#"
             SELECT
@@ -283,7 +286,7 @@ ORDER BY CODE
             INNER JOIN it_grundschutz_elementary_threat AS iget ON iget.code = tet.it_grundschutz_elementary_threat_code
             INNER JOIN asset AS a ON a.code = tet.asset_code
             WHERE tet.risk_analysis_process_code = $1 AND tet.asset_code = $2
-            ORDER BY iget._order
+            ORDER BY iget.code
             "#,
             code,
             asset
@@ -292,7 +295,8 @@ ORDER BY CODE
         Ok(res.into_iter().map(TOURElementaryThreatResponse::from).collect())
     }
 
-    pub async fn update_elementary_threat_list(db: &Pool<Postgres>, code: String, asset: String, update: Vec<TOURElementaryThreatUpdateModel>) -> ApiResult<()>{
+    pub async fn update_elementary_threat_list(db: &Pool<Postgres>, code: String, asset: String, update: Vec<TOURElementaryThreatUpdateModel>) -> ApiResult<()>
+    {
         sqlx::query(r#"
             INSERT INTO tour_elementary_threat (
                 risk_analysis_process_code,
@@ -326,10 +330,11 @@ ORDER BY CODE
         Ok(())
     }
 
-    pub async fn get_specific_threat_list(db: &Pool<Postgres>, code: String, asset: String) -> ApiResult<Vec<TOURSpecificThreatResponse>>{
+    pub async fn get_specific_threat_list(db: &Pool<Postgres>, code: String, asset: String) -> ApiResult<Vec<TOURSpecificThreatResponse>>
+    {
         let res: Vec<TOURSpecificThreatModel> =  sqlx::query_as!(TOURSpecificThreatModel,
             r#"
-            SELECT code, name, description
+            SELECT code, name, description, confidentiality_impaired,integrity_impaired, availability_impaired
             FROM tour_specific_threat
             WHERE risk_analysis_process_code = $1 AND asset_code = $2
             ORDER BY code
@@ -340,23 +345,38 @@ ORDER BY CODE
 
         Ok(res.into_iter().map(TOURSpecificThreatResponse::from).collect())
     }
-    pub async fn create_elementary_threat(db: &Pool<Postgres>, rap: String, asset: String, create: TOURSpecificThreatCreateModel) -> ApiResult<String> {
-        let code = next_code_for_db("tour_specific_threat","THR", 10, db).await?;
+    pub async fn create_specific_threat(db: &Pool<Postgres>, rap: String, asset: String, create: TOURSpecificThreatCreateModel) -> ApiResult<String>
+    {
+        let code = next_code_for_db("tour_specific_threat","THR", 10, &db).await?;
 
         sqlx::query!(
-        r#"INSERT INTO tour_specific_threat(code, risk_analysis_process_code, asset_code, name, description) VALUES ($1,$2,$3,$4,$5)"#,
+        r#"INSERT INTO tour_specific_threat
+        (
+        code,
+        risk_analysis_process_code,
+        asset_code,
+        name,
+        description,
+        confidentiality_impaired,
+        integrity_impaired,
+        availability_impaired
+        ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)"#,
             code,
             rap,
             asset,
             create.name,
-            create.description
+            create.description,
+            create.confidentiality_impaired,
+            create.integrity_impaired,
+            create.availability_impaired
         )
             .execute(db)
             .await?;
 
         Ok(code)
     }
-    pub async fn delete_elementary_threat(db: &Pool<Postgres>, rap: String, asset: String, threat: String) -> ApiResult<()> {
+    pub async fn delete_specific_threat(db: &Pool<Postgres>, rap: String, asset: String, threat: String) -> ApiResult<()>
+    {
         sqlx::query!(
             r#"
             DELETE FROM tour_specific_threat
@@ -369,7 +389,8 @@ ORDER BY CODE
 
         Ok(())
     }
-    pub async fn update_elementary_threat(db: &Pool<Postgres>, rap: String, asset: String, threat: String, update: TOURSpecificThreatCreateModel) -> ApiResult<()> {
+    pub async fn update_specific_threat(db: &Pool<Postgres>, rap: String, asset: String, threat: String, update: TOURSpecificThreatCreateModel) -> ApiResult<()>
+    {
         sqlx::query!(
         r#"UPDATE tour_specific_threat
         SET name = $4, description = $5
@@ -385,7 +406,8 @@ ORDER BY CODE
 
         Ok(())
     }
-    pub async fn get_specific_threat_overview(db: &Pool<Postgres>, rap: String, asset: String) -> ApiResult<(TOURSpecificThreatOverviewResponse)> {
+    pub async fn get_specific_threat_overview(db: &Pool<Postgres>, rap: String, asset: String) -> ApiResult<(TOURSpecificThreatOverviewResponse)>
+    {
         let res: TOURSpecificThreatOverviewModel =  sqlx::query_as!(TOURSpecificThreatOverviewModel,
             r#"
             SELECT reviewed
@@ -401,7 +423,8 @@ ORDER BY CODE
         Ok(TOURSpecificThreatOverviewResponse::from(res))
     }
 
-    pub async fn specific_threat_overview_set_reviewed(db: &Pool<Postgres>, rap: String, asset: String, value: bool) -> ApiResult<()> {
+    pub async fn specific_threat_overview_set_reviewed(db: &Pool<Postgres>, rap: String, asset: String, value: bool) -> ApiResult<()>
+    {
         sqlx::query!(
             r#"
             UPDATE tour_specific_threat_overview
@@ -416,5 +439,13 @@ ORDER BY CODE
             .execute(db).await?;
 
         Ok(())
+    }
+
+    pub async fn step_1_threat_overview_finish (
+        tx: &mut PgConnection,
+        code: String) -> ApiResult<()> {
+        RiskClassificationService::create_risk_classifications(&mut *tx, code).await?;
+        Ok(())
+
     }
 }

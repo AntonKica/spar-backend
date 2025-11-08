@@ -1,9 +1,9 @@
 pub mod business_process_route;
 pub mod application_route;
-pub mod role;
+pub mod role_route;
 pub mod it_system_route;
 pub mod risk_analysis_process_route;
-
+pub mod enum_route;
 
 use crate::model::{AssetModel};
 use actix_web::{get, post, web, HttpResponse, Responder, ResponseError, Scope};
@@ -30,12 +30,7 @@ pub struct OtherRotes {}
 impl GeneralRoute for OtherRotes {
     fn routes() -> Scope {
         web::scope("")
-            .service(enum_module_type_list)
-            .service(enum_protection_needs_list)
-            .service(bsi_it_grundschutz_module)
-            .service(bsi_it_grundschutz_elementary_threat)
             .service(asset_list)
-            .service(elmentary_threat_relevance)
     }
 }
 #[get("/")]
@@ -102,72 +97,6 @@ pub async fn it_system_get(
         Err(e) => e.error_response()
     }
 }
-
-#[get("/enum/module-type/")]
-pub async fn enum_module_type_list(
-    data: web::Data<AppState>,
-) -> impl Responder {
-    let data: Vec<EnumResponse> = ModuleType::iter().filter(|mt| !matches!(mt, ModuleType::UNKNOWN)).map(EnumResponse::from).collect();
-    HttpResponse::Ok().json(ApiResponse::new(data))
-}
-
-#[get("/enum/protection-needs/")]
-pub async fn enum_protection_needs_list(
-    data: web::Data<AppState>,
-) -> impl Responder {
-    let data: Vec<EnumResponse> = ProtectionNeeds::iter().map(EnumResponse::from).collect();
-    HttpResponse::Ok().json(ApiResponse::new(data))
-}
-
-#[derive(Serialize)]
-pub struct EnumCodeResponse {
-    pub code: String,
-    pub name: String,
-    pub _order: i32,
-}
-#[get("/enum/bsi-it-grundschutz-module/")]
-pub async fn bsi_it_grundschutz_module(
-    data: web::Data<AppState>,
-) -> impl Responder {
-    let query_result =  sqlx::query_as!(
-        EnumCodeResponse,
-        r#"SELECT * FROM it_grundschutz_module"#,
-    )
-        .fetch_all(&data.db)
-        .await;
-
-    match query_result {
-        Ok(res) => {
-            HttpResponse::Ok().json(ApiResponse::new(res))
-        }
-        Err(err) => {
-            ApiError::Database(err).error_response()
-        }
-    }
-}
-
-#[get("/enum/bsi-it-grundschutz-elementary-threat/")]
-pub async fn bsi_it_grundschutz_elementary_threat(
-    data: web::Data<AppState>,
-) -> impl Responder {
-    let query_result =  sqlx::query_as!(
-        EnumCodeResponse,
-        r#"SELECT * FROM it_grundschutz_elementary_threat"#,
-    )
-        .fetch_all(&data.db)
-        .await;
-
-    match query_result {
-        Ok(res) => {
-            HttpResponse::Ok().json(ApiResponse::new(res))
-        }
-        Err(err) => {
-            ApiError::Database(err).error_response()
-        }
-    }
-}
-
-
 #[get("/asset/")]
 pub async fn asset_list(
     data: web::Data<AppState>,
@@ -187,12 +116,4 @@ pub async fn asset_list(
             HttpResponse::Ok().json(serde_json::json!({ "status": "failed", "error": message}))
         }
     }
-}
-
-#[get("/enum/elementary-threat-relevance/")]
-pub async fn elmentary_threat_relevance(
-    data: web::Data<AppState>,
-) -> impl Responder {
-    let data: Vec<EnumResponse> = ElementaryThreatRelevance::iter().map(EnumResponse::from).collect();
-    HttpResponse::Ok().json(ApiResponse::new(data))
 }

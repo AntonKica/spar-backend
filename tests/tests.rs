@@ -1,7 +1,7 @@
 use spar_backend::configuration::AppConfig;
 use spar_backend::create_connection;
 use spar_backend::enums::{BusinessProcessType, ModuleType, ProtectionNeeds};
-use spar_backend::model::{ApplicationCreateModel, AssetCreateModel, BusinessProcessCreateModel, ITSystemCreateModel, RiskAnalysisProcessCreateModel, RoleCreateModel};
+use spar_backend::model::{ApplicationCreateModel, AssetCreateModel, BusinessProcessCreateModel, ITSystemCreateModel, RiskAnalysisProcessCreateModel, RoleCreateModel, TOURElementaryThreatUpdateModel, TOURSpecificThreatCreateModel};
 use spar_backend::service::application_service::ApplicationService;
 use spar_backend::service::asset_service::AssetService;
 use spar_backend::service::business_process_service::BusinessProcessService;
@@ -15,6 +15,8 @@ async fn create_dummy_assets() {
     let config = AppConfig::from_env();
     let db = create_connection(&config).await;
 
+    sqlx::query("DELETE FROM tour_elementary_threat_risk_classification").execute(&db).await.unwrap();
+    sqlx::query("DELETE FROM tour_specific_threat_risk_classification").execute(&db).await.unwrap();
     sqlx::query("DELETE FROM tour_elementary_threat").execute(&db).await.unwrap();
     sqlx::query("DELETE FROM tour_specific_threat").execute(&db).await.unwrap();
     sqlx::query("DELETE FROM tour_specific_threat_overview").execute(&db).await.unwrap();
@@ -51,13 +53,45 @@ async fn create_dummy_assets() {
         availability_protection_needs: ProtectionNeeds::VeryHigh,
     }).await.unwrap();
 
-    
-    let rap = RiskAnalysisProcessCreateModel {
-      target_objects_under_review: vec![virt_server, switch, database]  
-    };
-    
-    RiskAnalysisProcessService::create(&mut tx, rap).await.unwrap();
 
+    let rap= RiskAnalysisProcessService::create(
+        &mut tx,
+        RiskAnalysisProcessCreateModel {
+            target_objects_under_review: vec![virt_server.clone(), switch.clone(), database.clone()]
+        }
+    ).await.unwrap();
+    tx.commit().await.unwrap();
+
+    for tour in vec![virt_server, switch, database] {
+        let mut etl = RiskAnalysisProcessService::get_elementary_threat_list(&db, rap.clone(), tour.clone()).await.unwrap();
+        etl[0].relevance = 1;
+        etl[1].relevance = 2;
+        for et in etl.iter_mut() {
+            et.reviewed = true;
+        }
+
+        let update = etl.iter().map(|et| TOURElementaryThreatUpdateModel {
+            elementary_threat_code: et.elementary_threat_code.clone(),
+            relevance: et.relevance,
+            comment: et.comment.clone(),
+            reviewed: et.reviewed
+        }).collect();
+        RiskAnalysisProcessService::update_elementary_threat_list(&db, rap.clone(), tour.clone(), update).await.unwrap();
+
+        RiskAnalysisProcessService::create_specific_threat(&db, rap.clone(), tour.clone(), TOURSpecificThreatCreateModel {
+            name: "Dummy specific threat".to_owned(),
+            description: "just a dummy specific threat".to_owned(),
+            confidentiality_impaired: true,
+            integrity_impaired: true,
+            availability_impaired: false
+        }).await.unwrap();
+
+        RiskAnalysisProcessService::specific_threat_overview_set_reviewed(&db, rap.clone(), tour.clone(), true).await.unwrap();
+    }
+
+
+    let mut tx = db.begin().await.unwrap();
+    RiskAnalysisProcessService::step_1_threat_overview_finish(&mut tx, rap.clone()).await.unwrap();
     tx.commit().await.unwrap();
 }
 #[tokio::test]
@@ -106,10 +140,10 @@ async fn populate_db() {
 
     ///
     let bp_production = BusinessProcessService::create(&mut tx, BusinessProcessCreateModel {
-            name: "výroba".to_owned(),
-            description: "montáž a kalibrácia".to_owned(),
-            process_type: BusinessProcessType::PRIMARY,
-        }).await.unwrap();
+        name: "výroba".to_owned(),
+        description: "montáž a kalibrácia".to_owned(),
+        process_type: BusinessProcessType::PRIMARY,
+    }).await.unwrap();
 
     let role_production_leader = RoleService::create(&mut tx, RoleCreateModel {
         name: "vedúci výroby".to_owned(),

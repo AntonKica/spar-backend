@@ -1,3 +1,5 @@
+pub mod risk_classification_enums;
+
 use strum_macros::EnumIter;
 use crate::response::EnumResponse;
 
@@ -37,9 +39,9 @@ impl From<ProtectionNeeds> for EnumResponse {
 #[repr(i32)]
 #[derive(Debug, Copy, Clone, EnumIter)]
 pub enum ElementaryThreatRelevance {
-    DIRECT,
-    INDIRECT,
     IRRELEVANT,
+    INDIRECT,
+    DIRECT,
 }
 
 impl From<ElementaryThreatRelevance> for EnumResponse {
