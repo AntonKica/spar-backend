@@ -1,6 +1,24 @@
 pub mod risk_classification_enums;
+pub mod risk_treatment_enums;
 
 use strum_macros::EnumIter;
+
+pub trait EnumMeta {
+    fn code(&self) -> i32;
+    fn display_name(&self) -> &'static str;
+}
+impl<T> From<T> for EnumResponse
+where
+    T: EnumMeta,
+{
+    fn from(value: T) -> Self {
+        Self {
+            code: value.code(),
+            name: value.display_name().to_owned(),
+        }
+    }
+}
+
 use crate::response::EnumResponse;
 
 #[repr(i32)]

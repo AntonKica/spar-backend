@@ -15,6 +15,8 @@ async fn create_dummy_assets() {
     let config = AppConfig::from_env();
     let db = create_connection(&config).await;
 
+    sqlx::query("DELETE FROM tour_elementary_threat_risk_treatment").execute(&db).await.unwrap();
+    sqlx::query("DELETE FROM tour_specific_threat_risk_treatment").execute(&db).await.unwrap();
     sqlx::query("DELETE FROM tour_elementary_threat_risk_classification").execute(&db).await.unwrap();
     sqlx::query("DELETE FROM tour_specific_threat_risk_classification").execute(&db).await.unwrap();
     sqlx::query("DELETE FROM tour_elementary_threat").execute(&db).await.unwrap();
@@ -92,6 +94,7 @@ async fn create_dummy_assets() {
 
     let mut tx = db.begin().await.unwrap();
     RiskAnalysisProcessService::step_1_threat_overview_finish(&mut tx, rap.clone()).await.unwrap();
+    RiskAnalysisProcessService::step_2_risk_classification_finish(&mut tx, rap.clone()).await.unwrap();
     tx.commit().await.unwrap();
 }
 #[tokio::test]

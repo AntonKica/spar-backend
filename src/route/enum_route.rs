@@ -7,6 +7,7 @@ use crate::api::ApiResponse;
 use crate::configuration::AppState;
 use crate::enums::{ElementaryThreatRelevance, ModuleType, ProtectionNeeds};
 use crate::enums::risk_classification_enums::{FrequencyOfOccurrence, PotentialDamage, PotentialRisk};
+use crate::enums::risk_treatment_enums::RiskTreatment;
 use crate::response::EnumResponse;
 use crate::route::GeneralRoute;
 use crate::service::ApiError;
@@ -25,6 +26,7 @@ impl GeneralRoute for EnumRoute {
             .service(frequency_of_occurrence)
             .service(potential_damage)
             .service(potential_risk)
+            .service(risk_treatment)
     }
 }
 
@@ -114,5 +116,13 @@ pub async fn elmentary_threat_relevance(
     data: web::Data<AppState>,
 ) -> impl Responder {
     let data: Vec<EnumResponse> = ElementaryThreatRelevance::iter().map(EnumResponse::from).collect();
+    HttpResponse::Ok().json(ApiResponse::new(data))
+}
+
+#[get("/risk-treatment/")]
+pub async fn risk_treatment(
+    data: web::Data<AppState>,
+) -> impl Responder {
+    let data: Vec<EnumResponse> = RiskTreatment::iter().map(EnumResponse::from).collect();
     HttpResponse::Ok().json(ApiResponse::new(data))
 }

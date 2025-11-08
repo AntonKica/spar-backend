@@ -8,8 +8,10 @@ use crate::route::GeneralRoute;
 use crate::service::{ApiError, GeneralService};
 use actix_web::web::Path;
 use actix_web::{get, post, delete, web, HttpResponse, Responder, ResponseError, Scope};
+use crate::model::risk_treatment_model::TOURThreatRiskTreatmentUpdateModel;
 use crate::service::risk_analysis_process_service::RiskAnalysisProcessService;
 use crate::service::risk_classification_service::RiskClassificationService;
+use crate::service::risk_treatment_service::RiskTreatmentService;
 
 pub struct RiskAnalysisProcessRoute {}
 
@@ -32,6 +34,10 @@ impl GeneralRoute for RiskAnalysisProcessRoute {
             .service(risk_classification_list)
             .service(update_risk_classification_elementary_threat)
             .service(update_risk_classification_specific_threat)
+            .service(step_2_risk_classification_finish)
+            .service(risk_treatment_list)
+            .service(update_risk_treatment_elementary_threat)
+            .service(update_risk_treatment_specific_threat)
 
     }
 }
@@ -249,6 +255,69 @@ pub async fn update_risk_classification_specific_threat(
 ) -> impl Responder {
     let (rap, asset, threat) = path.into_inner();
     match RiskClassificationService::update_risk_classification_specific_threat(&data.db, rap, asset, threat, body.0).await {
+        Ok(data) => HttpResponse::Ok().json(ApiResponse::new(data)),
+        Err(e) => e.error_response()
+    }
+}
+
+#[post("/{rap}/step-2-risk-classification/finish")]
+pub async fn step_2_risk_classification_finish(
+    data: web::Data<AppState>,
+    path: Path<(String)>
+) -> impl Responder {
+    let mut tx = match data.db.begin().await {
+        Ok(tx) => tx,
+        Err(e) => return ApiError::Database(e).error_response(),
+    };
+
+    let rap = path.into_inner();
+    match RiskAnalysisProcessService::step_2_risk_classification_finish(&mut tx, rap).await {
+        Ok(res) => {
+            if let Err(e) = tx.commit().await {
+                return ApiError::Database(e).error_response();
+            }
+            HttpResponse::Ok().json(ApiResponse::new({}))
+        }
+        Err(e) => {
+            let _ = tx.rollback().await;
+            e.error_response()
+        }
+    }
+}
+
+#[get("/{code}/risk-treatment/{asset}/")]
+pub async fn risk_treatment_list(
+    data: web::Data<AppState>,
+    path: Path<(String, String)>
+) -> impl Responder {
+    let (code, asset) = path.into_inner();
+    match RiskTreatmentService::get_risk_treatment_list(&data.db, code, asset).await {
+        Ok(data) => HttpResponse::Ok().json(ApiResponse::new(data)),
+        Err(e) => e.error_response()
+    }
+}
+
+#[post("/{rap}/risk-treatment/{asset}/elementary-threat/{threat}")]
+pub async fn update_risk_treatment_elementary_threat(
+    data: web::Data<AppState>,
+    body: web::Json<TOURThreatRiskTreatmentUpdateModel>,
+    path: Path<(String, String, String)>
+) -> impl Responder {
+    let (rap, asset, threat) = path.into_inner();
+    match RiskTreatmentService::update_risk_treatment_elementary_threat(&data.db, rap, asset, threat, body.0).await {
+        Ok(data) => HttpResponse::Ok().json(ApiResponse::new(data)),
+        Err(e) => e.error_response()
+    }
+}
+
+#[post("/{rap}/risk-treatment/{asset}/specific-threat/{threat}")]
+pub async fn update_risk_treatment_specific_threat(
+    data: web::Data<AppState>,
+    body: web::Json<TOURThreatRiskTreatmentUpdateModel>,
+    path: Path<(String, String, String)>
+) -> impl Responder {
+    let (rap, asset, threat) = path.into_inner();
+    match RiskTreatmentService::update_risk_treatment_specific_threat(&data.db, rap, asset, threat, body.0).await {
         Ok(data) => HttpResponse::Ok().json(ApiResponse::new(data)),
         Err(e) => e.error_response()
     }

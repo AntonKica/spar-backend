@@ -1,4 +1,5 @@
 pub mod risk_classsification_model;
+pub mod risk_treatment_model;
 
 use actix_web::{HttpResponse, ResponseError};
 use chrono::{NaiveDate, Utc};

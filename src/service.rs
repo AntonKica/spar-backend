@@ -10,6 +10,7 @@ pub mod it_system_service;
 pub mod risk_analysis_process_service;
 pub mod asset_service;
 pub mod risk_classification_service;
+pub mod risk_treatment_service;
 
 #[derive(Error, Debug)]
 pub enum ApiError {

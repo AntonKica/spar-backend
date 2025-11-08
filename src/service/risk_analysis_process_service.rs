@@ -9,6 +9,7 @@ use serde_json::{json, Value};
 use sqlx::{Executor, PgConnection, Pool, Postgres};
 use crate::enums::ElementaryThreatRelevance;
 use crate::service::risk_classification_service::RiskClassificationService;
+use crate::service::risk_treatment_service::RiskTreatmentService;
 
 pub struct RiskAnalysisProcessService;
 
@@ -447,5 +448,12 @@ ORDER BY CODE
         RiskClassificationService::create_risk_classifications(&mut *tx, code).await?;
         Ok(())
 
+    }
+
+    pub async fn step_2_risk_classification_finish (
+        tx: &mut PgConnection,
+        code: String) -> ApiResult<()> {
+        RiskTreatmentService::create_risk_treatments(&mut *tx, code).await?;
+        Ok(())
     }
 }
