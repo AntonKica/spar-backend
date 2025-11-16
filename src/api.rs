@@ -1,4 +1,5 @@
 use serde::Serialize;
+use serde_json::Value;
 
 #[derive(Serialize)]
 pub struct ApiResponse<T> {
@@ -12,6 +13,17 @@ pub struct ApiErrorResponse {
     pub message: String,
 }
 
+#[derive(Serialize)]
+pub struct ApiCodeResponse {
+    pub status: &'static str,
+    pub code: String,
+}
+
+#[derive(Serialize)]
+pub struct ApiSuccessResponse {
+    pub status: &'static str,
+}
+
 impl<T: Serialize> ApiResponse<T> {
     pub fn new(data: T) -> Self {
         Self {
@@ -21,11 +33,27 @@ impl<T: Serialize> ApiResponse<T> {
     }
 }
 
+impl ApiCodeResponse {
+    pub fn new(code: String) -> Self {
+        Self {
+            status: "ok",
+            code,
+        }
+    }
+}
+
 impl ApiErrorResponse {
     pub fn new(message: String) -> Self {
         Self {
             status: "error",
             message,
+        }
+    }
+}
+impl ApiSuccessResponse {
+    pub fn new() -> Self {
+        Self {
+            status: "ok",
         }
     }
 }

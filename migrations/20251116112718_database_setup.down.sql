@@ -4,4 +4,4 @@ DROP TABLE asset_fulfilled_threat_list;
 DROP TABLE asset;
 DROP TABLE security_measure;
 DROP TABLE fulfilled_threat;
-
+DROP TABLE risk_analysis_process;

@@ -7,6 +7,7 @@ use spar_backend::create_connection;
 use spar_backend::route::{GeneralRoute};
 use spar_backend::route::asset_route::AssetRoute;
 use spar_backend::route::enum_route::EnumRoute;
+use spar_backend::route::risk_analysis_process_route::RiskAnalysisProcessRoute;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -23,6 +24,7 @@ async fn main() -> std::io::Result<()> {
                 scope("/svc")
                     .service(EnumRoute::routes())
                     .service(AssetRoute::routes())
+                    .service(RiskAnalysisProcessRoute::routes())
             )
     })
         .bind((config.server_host, config.server_port))?

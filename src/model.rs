@@ -4,6 +4,7 @@ pub mod asset_model;
 pub mod fulfilled_threat_models;
 pub mod security_measure_models;
 pub mod specific_threat_model;
+pub mod risk_analysis_process_models;
 
 use serde::{Deserialize, Serialize};
 use serde_json::{ Value};

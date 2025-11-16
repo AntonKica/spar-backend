@@ -2,6 +2,7 @@ pub mod risk_classification_enums;
 pub mod risk_treatment_enums;
 pub mod asset_enums;
 pub mod fulfilled_threat_enums;
+pub mod risk_analysis_process_enums;
 
 use strum_macros::EnumIter;
 
