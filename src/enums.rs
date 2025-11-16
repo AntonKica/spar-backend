@@ -1,5 +1,7 @@
 pub mod risk_classification_enums;
 pub mod risk_treatment_enums;
+pub mod asset_enums;
+pub mod fulfilled_threat_enums;
 
 use strum_macros::EnumIter;
 
@@ -86,48 +88,6 @@ impl From<ElementaryThreatRelevance> for EnumResponse {
         }
     }
 }
-#[repr(i32)]
-#[derive(Debug, Copy, Clone)]
-pub enum BusinessProcessType {
-    UNKNOWN = -1,
-    PRIMARY = 0,
-    SUPPORT,
-}
-
-impl From<BusinessProcessType> for EnumResponse {
-    fn from(value: BusinessProcessType) -> Self {
-        match value {
-            BusinessProcessType::SUPPORT => {
-                EnumResponse {
-                    code: BusinessProcessType::SUPPORT as i32,
-                    name: "podporný".to_owned()
-                }
-            }
-            BusinessProcessType::PRIMARY => {
-                EnumResponse {
-                    code: BusinessProcessType::PRIMARY as i32,
-                    name: "primárny".to_owned()
-                }
-            }
-            BusinessProcessType::UNKNOWN => {
-                EnumResponse {
-                    code: BusinessProcessType::UNKNOWN as i32,
-                    name: "neznámy".to_owned()
-                }
-            }
-        }
-    }
-}
-
-impl From<i32> for BusinessProcessType {
-    fn from(value: i32) -> Self {
-        match value {
-            0 => BusinessProcessType::PRIMARY,
-            1 => BusinessProcessType::SUPPORT,
-            _ => BusinessProcessType::UNKNOWN
-        }
-    }
-}
 
 #[repr(i32)]
 #[derive(Copy, Clone)]
@@ -155,7 +115,7 @@ impl From<ProtectionRequirementType> for EnumResponse {
             }
             ProtectionRequirementType::HIGH => {
                 EnumResponse {
-                    code: BusinessProcessType::PRIMARY as i32,
+                    code: ProtectionRequirementType::HIGH as i32,
                     name: "vysoká".to_owned()
                 }
             }

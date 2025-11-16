@@ -1,5 +1,4 @@
 use serde::Deserialize;
-use crate::enums::BusinessProcessType;
 
 #[derive(Debug, Clone)]
 pub struct TOURElementaryThreatRiskTreatmentModel {

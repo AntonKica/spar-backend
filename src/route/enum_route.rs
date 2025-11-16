@@ -6,36 +6,27 @@ use serde::Serialize;
 use crate::api::ApiResponse;
 use crate::configuration::AppState;
 use crate::enums::{ElementaryThreatRelevance, ModuleType, ProtectionNeeds};
+use crate::enums::asset_enums::AssetType;
 use crate::enums::risk_classification_enums::{FrequencyOfOccurrence, PotentialDamage, PotentialRisk};
 use crate::enums::risk_treatment_enums::RiskTreatment;
 use crate::response::EnumResponse;
 use crate::route::GeneralRoute;
 use crate::service::ApiError;
-use crate::service::it_system_service::ITSystemService;
 
 pub struct EnumRoute {}
 
 impl GeneralRoute for EnumRoute {
     fn routes() -> Scope {
         web::scope("/enum")
-            .service(enum_module_type_list)
             .service(enum_protection_needs_list)
-            .service(bsi_it_grundschutz_module)
-            .service(bsi_it_grundschutz_elementary_threat)
+            .service(elementary_threat_list)
             .service(elmentary_threat_relevance)
             .service(frequency_of_occurrence)
             .service(potential_damage)
             .service(potential_risk)
             .service(risk_treatment)
+            .service(asset_type_list)
     }
-}
-
-#[get("/module-type/")]
-pub async fn enum_module_type_list(
-    data: web::Data<AppState>,
-) -> impl Responder {
-    let data: Vec<EnumResponse> = ModuleType::iter().filter(|mt| !matches!(mt, ModuleType::UNKNOWN)).map(EnumResponse::from).collect();
-    HttpResponse::Ok().json(ApiResponse::new(data))
 }
 
 #[get("/protection-needs/")]
@@ -51,45 +42,15 @@ pub struct EnumCodeResponse {
     pub code: String,
     pub name: String,
 }
-#[get("/bsi-it-grundschutz-module/")]
-pub async fn bsi_it_grundschutz_module(
+#[get("/elementary-threat/")]
+pub async fn elementary_threat_list(
     data: web::Data<AppState>,
 ) -> impl Responder {
-    let query_result =  sqlx::query_as!(
-        EnumCodeResponse,
-        r#"SELECT code, name FROM it_grundschutz_module"#,
-    )
-        .fetch_all(&data.db)
-        .await;
+    let query_result = sqlx::query_as!(EnumCodeResponse, r#"SELECT code, name FROM elementary_threat"#) .fetch_all(&data.db) .await;
 
     match query_result {
-        Ok(res) => {
-            HttpResponse::Ok().json(ApiResponse::new(res))
-        }
-        Err(err) => {
-            ApiError::Database(err).error_response()
-        }
-    }
-}
-
-#[get("/bsi-it-grundschutz-elementary-threat/")]
-pub async fn bsi_it_grundschutz_elementary_threat(
-    data: web::Data<AppState>,
-) -> impl Responder {
-    let query_result =  sqlx::query_as!(
-        EnumCodeResponse,
-        r#"SELECT * FROM it_grundschutz_elementary_threat"#,
-    )
-        .fetch_all(&data.db)
-        .await;
-
-    match query_result {
-        Ok(res) => {
-            HttpResponse::Ok().json(ApiResponse::new(res))
-        }
-        Err(err) => {
-            ApiError::Database(err).error_response()
-        }
+        Ok(res) => HttpResponse::Ok().json(ApiResponse::new(res)),
+        Err(err) => ApiError::Database(err).error_response()
     }
 }
 
@@ -124,5 +85,13 @@ pub async fn risk_treatment(
     data: web::Data<AppState>,
 ) -> impl Responder {
     let data: Vec<EnumResponse> = RiskTreatment::iter().map(EnumResponse::from).collect();
+    HttpResponse::Ok().json(ApiResponse::new(data))
+}
+
+#[get("/asset-type/")]
+pub async fn asset_type_list(
+    data: web::Data<AppState>,
+) -> impl Responder {
+    let data: Vec<EnumResponse> = AssetType::iter().map(EnumResponse::from).collect();
     HttpResponse::Ok().json(ApiResponse::new(data))
 }

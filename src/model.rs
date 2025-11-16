@@ -1,120 +1,13 @@
 pub mod risk_classsification_model;
 pub mod risk_treatment_model;
+pub mod asset_model;
+pub mod fulfilled_threat_models;
+pub mod security_measure_models;
+pub mod specific_threat_model;
 
-use actix_web::{HttpResponse, ResponseError};
-use chrono::{NaiveDate, Utc};
-use log::error;
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
-use sqlx::{PgConnection};
-use crate::enums::{BusinessProcessType, ModuleType, ProtectionNeeds};
-use crate::service::{ApiError, ApiResult};
- 
-#[derive(Debug, Clone)]
-pub struct BusinessProcessModel {
-    pub code: String,
-    pub name: String,
-    pub description: String,
-    pub process_type: BusinessProcessType,
-    pub responsible: Option<String>,
-}
-
-#[derive(Debug, Clone)]
-pub struct BusinessProcessCreateModel {
-    pub name: String,
-    pub description: String,
-    pub process_type: BusinessProcessType
-}
-
-#[derive(Debug, Clone)]
-pub struct RoleModel {
-    pub code: String,
-    pub name: String,
-    pub description: String,
-}
-
-#[derive(Debug, Clone)]
-pub struct RoleCreateModel {
-    pub name: String,
-    pub description: String,
-}
-
-#[derive(Debug, Clone)]
-pub struct BusinessProcessRoleCreateModel {
-    pub business_process_code: String,
-    pub role_code: String,
-}
-
-#[derive(Debug, Clone)]
-pub struct ApplicationModel {
-    pub code: String,
-    pub name: String,
-    pub description: String,
-    pub module_type: ModuleType,
-    pub application_user: String,
-    pub responsible: String,
-}
-#[derive(Debug, Clone)]
-pub struct ApplicationCreateModel {
-    pub name: String,
-    pub description: String,
-    pub module_type: ModuleType,
-    pub application_user: String,
-    pub responsible: String,
-}
-
-#[derive(Debug, Clone)]
-pub struct BusinessProcessApplicationModel {
-    pub business_process_code: String,
-    pub application_code: String,
-}
-#[derive(Debug, Clone)]
-pub struct BusinessProcessApplicationCreateModel {
-    pub business_process_code: String,
-    pub application_code: String,
-}
-
-#[derive(Debug, Clone)]
-pub struct ITSystemModel {
-    pub code: String,
-    pub name: String,
-    pub description: String,
-    pub module_type: ModuleType,
-    pub count: i32,
-    pub application_user: String,
-    pub responsible: String,
-}
-
-#[derive(Debug, Clone)]
-pub struct ITSystemCreateModel {
-    pub name: String,
-    pub description: String,
-    pub module_type: ModuleType,
-    pub count: i32,
-    pub application_user: String,
-    pub responsible: String,
-}
-
-#[derive(Debug, Clone)]
-pub struct AssetCreateModel {
-    pub name: String,
-    pub description: String,
-    pub responsible: String,
-    pub confidentiality_protection_needs: ProtectionNeeds,
-    pub integrity_protection_needs: ProtectionNeeds,
-    pub availability_protection_needs: ProtectionNeeds,
-}
-#[derive(Serialize)]
-pub struct AssetModel {
-    pub code: String,
-    pub name: String,
-    pub description: String,
-    pub responsible: String,
-    // TODO maybe enum values?
-    pub confidentiality_protection_needs: i32,
-    pub integrity_protection_needs: i32,
-    pub availability_protection_needs: i32,
-}
+use serde_json::{ Value};
+use crate::enums::{ProtectionNeeds};
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct RiskAnalysisProcessCreateModel {

@@ -1,6 +1,5 @@
 use serde::{Deserialize, Serialize};
 use crate::workflow::{Task, Workflow};
-use sqlx::PgConnection;
 use strum_macros::Display;
 
 #[derive(Debug, Display, Serialize, Deserialize, Clone)]

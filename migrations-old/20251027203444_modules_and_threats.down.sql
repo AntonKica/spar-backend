@@ -1,2 +1,3 @@
+DROP TABLE elementary_threat_core_value_impaired;
 DROP TABLE it_grundschutz_module;
 DROP TABLE it_grundschutz_elementary_threat;

@@ -1,4 +1,3 @@
-use std::env;
 use sqlx::{Pool, Postgres};
 use sqlx::postgres::PgPoolOptions;
 use crate::configuration::AppConfig;
