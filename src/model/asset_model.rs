@@ -1,6 +1,5 @@
 use serde::Serialize;
-use crate::enums::asset_enums::AssetType;
-use crate::enums::ProtectionNeeds;
+use crate::enums::asset_enums::{AssetType, ProtectionNeeds};
 use crate::model::fulfilled_threat_models::FulfilledThreatDetailModel;
 use crate::model::security_measure_models::SecurityMeasureModel;
 

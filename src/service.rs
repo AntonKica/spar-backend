@@ -20,6 +20,8 @@ pub enum ApiError {
     NotFound(String),
     #[error("Validation error: {0}")]
     Validation(String),
+    #[error("Enum conversion error: {0}")]
+    EnumConversion(i32),
     #[error("Internal server error")]
     Internal,
 }
@@ -51,7 +53,13 @@ impl ResponseError for ApiError {
                     "status": "error",
                     "message": "Internal server error"
                 }))
-            }
+            },
+            ApiError::EnumConversion(val) => {
+                HttpResponse::InternalServerError().json(serde_json::json!({
+                    "status": "error",
+                    "message": format!("Failed to convert enum {val}")
+                }))
+            },
         }
     }
 }

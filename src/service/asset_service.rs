@@ -36,7 +36,6 @@ impl GeneralService<AssetModel, AssetDetailModel, AssetCreateModel> for AssetSer
     async fn list(db: &Pool<Postgres>) -> ApiResult<Vec<AssetModel>> {
         Ok(sqlx::query_as!(AssetModel, r#" SELECT * FROM asset"#).fetch_all(db).await?)
     }
-
     async fn get_by_code(db: &Pool<Postgres>, code: String) -> ApiResult<AssetDetailModel> {
         let asset: AssetModel = sqlx::query_as!(AssetModel, r#"SELECT * FROM asset WHERE code = $1"#, code.clone()).fetch_optional(db)
             .await?
@@ -60,6 +59,22 @@ impl GeneralService<AssetModel, AssetDetailModel, AssetCreateModel> for AssetSer
 }
 
 impl AssetService {
+    pub async fn list_for_risk_analysis_process(db: &Pool<Postgres>, rap_code: String) -> ApiResult<Vec<AssetModel>> {
+        Ok(
+            sqlx::query_as!(AssetModel,
+                r#"
+                SELECT * FROM asset
+                 WHERE EXISTS(SELECT * FROM risk_analysis_process_tour_list
+                     WHERE asset.code = risk_analysis_process_tour_list.asset_code
+                     AND risk_analysis_process_tour_list.risk_analysis_process_code = $1
+                     LIMIT 1
+                 )
+                "#, rap_code)
+                .fetch_all(db)
+                .await?
+        )
+    }
+
     pub async fn assign_security_measure(
         tx: &mut PgConnection,
         asset_code: String,

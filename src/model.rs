@@ -8,7 +8,6 @@ pub mod risk_analysis_process_models;
 
 use serde::{Deserialize, Serialize};
 use serde_json::{ Value};
-use crate::enums::{ProtectionNeeds};
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct RiskAnalysisProcessCreateModel {

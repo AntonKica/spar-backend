@@ -4,12 +4,30 @@ pub mod asset_enums;
 pub mod fulfilled_threat_enums;
 pub mod risk_analysis_process_enums;
 
-use strum_macros::EnumIter;
+#[macro_export]
+macro_rules! int_enum {
+    ($name:ident { $($variant:ident),* $(,)? }) => {
+        #[repr(i32)]
+        #[derive(
+            Debug,
+            Copy,
+            Clone,
+            sqlx::Type,
+            strum_macros::EnumIter,
+            serde_repr::Deserialize_repr,
+            serde_repr::Serialize_repr,
+        )]
+        pub enum $name {
+            $($variant),*
+        }
+    };
+}
 
 pub trait EnumMeta {
     fn code(&self) -> i32;
     fn display_name(&self) -> &'static str;
 }
+
 impl<T> From<T> for EnumResponse
 where
     T: EnumMeta,
@@ -22,40 +40,8 @@ where
     }
 }
 
+use strum_macros::EnumIter;
 use crate::response::EnumResponse;
-
-#[repr(i32)]
-#[derive(Debug, Copy, Clone, EnumIter)]
-pub enum ProtectionNeeds {
-    Normal,
-    High,
-    VeryHigh,
-}
-
-impl From<ProtectionNeeds> for EnumResponse {
-    fn from(value: ProtectionNeeds) -> Self {
-        match value {
-            ProtectionNeeds::Normal => {
-                EnumResponse {
-                    code: ProtectionNeeds::Normal as i32,
-                    name: "normálna".to_owned()
-                }
-            }
-            ProtectionNeeds::High => {
-                EnumResponse {
-                    code: ProtectionNeeds::High as i32,
-                    name: "vysoká".to_owned()
-                }
-            }
-            ProtectionNeeds::VeryHigh => {
-                EnumResponse {
-                    code: ProtectionNeeds::VeryHigh as i32,
-                    name: "veľmi vysoká".to_owned()
-                }
-            }
-        }
-    }
-}
 
 #[repr(i32)]
 #[derive(Debug, Copy, Clone, EnumIter)]

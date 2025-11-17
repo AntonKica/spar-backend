@@ -48,11 +48,7 @@ CREATE TABLE risk_analysis_process
     code                                        CHAR(10) NOT NULL PRIMARY KEY,
     created_on                                  DATE     NOT NULL,
     process_status                              INTEGER  NOT NULL,
-    step_1_select_tour_process_status           INTEGER  NOT NULL,
-    step_2_threat_identification_process_status INTEGER  NOT NULL,
-    step_3_risk_analysis_process_status         INTEGER  NOT NULL,
-    step_4_risk_treatment_process_status        INTEGER  NOT NULL,
-    step_5_risk_treatment_check_process_status  INTEGER  NOT NULL
+    process_step                                INTEGER  NOT NULL
 );
 
 CREATE TABLE risk_analysis_process_tour_list

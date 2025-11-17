@@ -1,3 +1,4 @@
+use crate::enums::asset_enums::ProtectionNeeds;
 use actix_web::ResponseError;
 use strum::IntoEnumIterator;
 use actix_web::{get, web, HttpResponse, Responder, Scope};
@@ -5,8 +6,9 @@ use actix_web::web::Path;
 use serde::Serialize;
 use crate::api::ApiResponse;
 use crate::configuration::AppState;
-use crate::enums::{ElementaryThreatRelevance, ModuleType, ProtectionNeeds};
+use crate::enums::{ElementaryThreatRelevance, ModuleType};
 use crate::enums::asset_enums::AssetType;
+use crate::enums::risk_analysis_process_enums::{ProcessStatus, ProcessStep};
 use crate::enums::risk_classification_enums::{FrequencyOfOccurrence, PotentialDamage, PotentialRisk};
 use crate::enums::risk_treatment_enums::RiskTreatment;
 use crate::response::EnumResponse;
@@ -26,11 +28,13 @@ impl GeneralRoute for EnumRoute {
             .service(potential_risk)
             .service(risk_treatment)
             .service(asset_type_list)
+            .service(process_stauts)
+            .service(process_step)
     }
 }
 
 #[get("/protection-needs/")]
-pub async fn enum_protection_needs_list(
+async fn enum_protection_needs_list(
     data: web::Data<AppState>,
 ) -> impl Responder {
     let data: Vec<EnumResponse> = ProtectionNeeds::iter().map(EnumResponse::from).collect();
@@ -38,12 +42,12 @@ pub async fn enum_protection_needs_list(
 }
 
 #[derive(Serialize)]
-pub struct EnumCodeResponse {
-    pub code: String,
-    pub name: String,
+struct EnumCodeResponse {
+    code: String,
+    name: String,
 }
 #[get("/elementary-threat/")]
-pub async fn elementary_threat_list(
+async fn elementary_threat_list(
     data: web::Data<AppState>,
 ) -> impl Responder {
     let query_result = sqlx::query_as!(EnumCodeResponse, r#"SELECT code, name FROM elementary_threat"#) .fetch_all(&data.db) .await;
@@ -73,7 +77,7 @@ async fn potential_risk() -> impl Responder {
 }
 
 #[get("/elementary-threat-relevance/")]
-pub async fn elmentary_threat_relevance(
+async fn elmentary_threat_relevance(
     data: web::Data<AppState>,
 ) -> impl Responder {
     let data: Vec<EnumResponse> = ElementaryThreatRelevance::iter().map(EnumResponse::from).collect();
@@ -81,7 +85,7 @@ pub async fn elmentary_threat_relevance(
 }
 
 #[get("/risk-treatment/")]
-pub async fn risk_treatment(
+async fn risk_treatment(
     data: web::Data<AppState>,
 ) -> impl Responder {
     let data: Vec<EnumResponse> = RiskTreatment::iter().map(EnumResponse::from).collect();
@@ -89,9 +93,25 @@ pub async fn risk_treatment(
 }
 
 #[get("/asset-type/")]
-pub async fn asset_type_list(
+async fn asset_type_list(
     data: web::Data<AppState>,
 ) -> impl Responder {
     let data: Vec<EnumResponse> = AssetType::iter().map(EnumResponse::from).collect();
+    HttpResponse::Ok().json(ApiResponse::new(data))
+}
+
+#[get("/process-status/")]
+async fn process_stauts(
+    data: web::Data<AppState>,
+) -> impl Responder {
+    let data: Vec<EnumResponse> = ProcessStatus::iter().map(EnumResponse::from).collect();
+    HttpResponse::Ok().json(ApiResponse::new(data))
+}
+
+#[get("/process-step/")]
+async fn process_step(
+    data: web::Data<AppState>,
+) -> impl Responder {
+    let data: Vec<EnumResponse> = ProcessStep::iter().map(EnumResponse::from).collect();
     HttpResponse::Ok().json(ApiResponse::new(data))
 }
