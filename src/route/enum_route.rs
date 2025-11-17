@@ -15,31 +15,34 @@ use crate::response::EnumResponse;
 use crate::route::GeneralRoute;
 use crate::service::ApiError;
 
+async fn enum_list<E: strum::IntoEnumIterator + Into<EnumResponse>>() -> impl Responder {
+    let data: Vec<EnumResponse> = E::iter().map(Into::into).collect();
+    HttpResponse::Ok().json(ApiResponse::new(data))
+}
+
+macro_rules! enum_handler {
+    ($enum_type:ty) => {
+        web::get().to(|| enum_list::<$enum_type>())
+    };
+}
 pub struct EnumRoute {}
 
 impl GeneralRoute for EnumRoute {
     fn routes() -> Scope {
         web::scope("/enum")
-            .service(enum_protection_needs_list)
+            .route("/protection-needs/", enum_handler!(ProtectionNeeds))
+            .route("/frequency-of-occurrence/", enum_handler!(FrequencyOfOccurrence))
+            .route("/potential-damage/", enum_handler!(PotentialDamage))
+            .route("/potential-risk/", enum_handler!(PotentialRisk))
+            .route("/elementary-threat-relevance/", enum_handler!(ElementaryThreatRelevance))
+            .route("/risk-treatment/", enum_handler!(RiskTreatment))
+            .route("/asset-type/", enum_handler!(AssetType))
+            .route("/process-status/", enum_handler!(ProcessStatus))
+            .route("/process-step/", enum_handler!(ProcessStep))
             .service(elementary_threat_list)
-            .service(elmentary_threat_relevance)
-            .service(frequency_of_occurrence)
-            .service(potential_damage)
-            .service(potential_risk)
-            .service(risk_treatment)
-            .service(asset_type_list)
-            .service(process_stauts)
-            .service(process_step)
     }
 }
 
-#[get("/protection-needs/")]
-async fn enum_protection_needs_list(
-    data: web::Data<AppState>,
-) -> impl Responder {
-    let data: Vec<EnumResponse> = ProtectionNeeds::iter().map(EnumResponse::from).collect();
-    HttpResponse::Ok().json(ApiResponse::new(data))
-}
 
 #[derive(Serialize)]
 struct EnumCodeResponse {
@@ -56,62 +59,4 @@ async fn elementary_threat_list(
         Ok(res) => HttpResponse::Ok().json(ApiResponse::new(res)),
         Err(err) => ApiError::Database(err).error_response()
     }
-}
-
-#[get("/frequency-of-occurrence/")]
-async fn frequency_of_occurrence() -> impl Responder {
-    let data: Vec<EnumResponse> = FrequencyOfOccurrence::iter().map(EnumResponse::from).collect();
-    HttpResponse::Ok().json(ApiResponse::new(data))
-}
-
-#[get("/potential-damage/")]
-async fn potential_damage() -> impl Responder {
-    let data: Vec<EnumResponse> = PotentialDamage::iter().map(EnumResponse::from).collect();
-    HttpResponse::Ok().json(ApiResponse::new(data))
-}
-
-#[get("/potential-risk/")]
-async fn potential_risk() -> impl Responder {
-    let data: Vec<EnumResponse> = PotentialRisk::iter().map(EnumResponse::from).collect();
-    HttpResponse::Ok().json(ApiResponse::new(data))
-}
-
-#[get("/elementary-threat-relevance/")]
-async fn elmentary_threat_relevance(
-    data: web::Data<AppState>,
-) -> impl Responder {
-    let data: Vec<EnumResponse> = ElementaryThreatRelevance::iter().map(EnumResponse::from).collect();
-    HttpResponse::Ok().json(ApiResponse::new(data))
-}
-
-#[get("/risk-treatment/")]
-async fn risk_treatment(
-    data: web::Data<AppState>,
-) -> impl Responder {
-    let data: Vec<EnumResponse> = RiskTreatment::iter().map(EnumResponse::from).collect();
-    HttpResponse::Ok().json(ApiResponse::new(data))
-}
-
-#[get("/asset-type/")]
-async fn asset_type_list(
-    data: web::Data<AppState>,
-) -> impl Responder {
-    let data: Vec<EnumResponse> = AssetType::iter().map(EnumResponse::from).collect();
-    HttpResponse::Ok().json(ApiResponse::new(data))
-}
-
-#[get("/process-status/")]
-async fn process_stauts(
-    data: web::Data<AppState>,
-) -> impl Responder {
-    let data: Vec<EnumResponse> = ProcessStatus::iter().map(EnumResponse::from).collect();
-    HttpResponse::Ok().json(ApiResponse::new(data))
-}
-
-#[get("/process-step/")]
-async fn process_step(
-    data: web::Data<AppState>,
-) -> impl Responder {
-    let data: Vec<EnumResponse> = ProcessStep::iter().map(EnumResponse::from).collect();
-    HttpResponse::Ok().json(ApiResponse::new(data))
 }
