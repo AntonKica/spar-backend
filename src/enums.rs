@@ -57,19 +57,19 @@ impl From<ElementaryThreatRelevance> for EnumResponse {
             ElementaryThreatRelevance::DIRECT => {
                 EnumResponse {
                     code: ElementaryThreatRelevance::DIRECT as i32,
-                    name: "priamy".to_owned()
+                    name: "priama".to_owned()
                 }
             }
             ElementaryThreatRelevance::INDIRECT => {
                 EnumResponse {
                     code: ElementaryThreatRelevance::INDIRECT as i32,
-                    name: "nepriamy".to_owned()
+                    name: "nepriama".to_owned()
                 }
             }
             ElementaryThreatRelevance::IRRELEVANT => {
                 EnumResponse {
                     code: ElementaryThreatRelevance::IRRELEVANT as i32,
-                    name: "irelevantný".to_owned()
+                    name: "irelevantná".to_owned()
                 }
             }
         }

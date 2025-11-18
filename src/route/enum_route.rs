@@ -1,6 +1,5 @@
 use crate::enums::asset_enums::ProtectionNeeds;
 use actix_web::ResponseError;
-use strum::IntoEnumIterator;
 use actix_web::{get, web, HttpResponse, Responder, Scope};
 use actix_web::web::Path;
 use serde::Serialize;
@@ -48,12 +47,15 @@ impl GeneralRoute for EnumRoute {
 struct EnumCodeResponse {
     code: String,
     name: String,
+    confidentiality_impaired: bool,
+    integrity_impaired: bool,
+    availability_impaired: bool,
 }
 #[get("/elementary-threat/")]
 async fn elementary_threat_list(
     data: web::Data<AppState>,
 ) -> impl Responder {
-    let query_result = sqlx::query_as!(EnumCodeResponse, r#"SELECT code, name FROM elementary_threat"#) .fetch_all(&data.db) .await;
+    let query_result = sqlx::query_as!(EnumCodeResponse, r#"SELECT * FROM elementary_threat"#) .fetch_all(&data.db) .await;
 
     match query_result {
         Ok(res) => HttpResponse::Ok().json(ApiResponse::new(res)),
