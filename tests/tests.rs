@@ -73,7 +73,7 @@ async fn create_dummy_assets() {
         }
 
         let update = etl.iter().map(|et| TOURElementaryThreatUpdateModel {
-            elementary_threat_code: et.elementary_threat_code.clone(),
+            et_code: et.et_code.clone(),
             relevance: et.relevance,
             comment: et.comment.clone(),
             reviewed: et.reviewed

@@ -5,6 +5,7 @@ pub mod fulfilled_threat_models;
 pub mod security_measure_models;
 pub mod specific_threat_model;
 pub mod risk_analysis_process_models;
+pub mod step_2_threat_identification_models;
 
 use serde::{Deserialize, Serialize};
 use serde_json::{ Value};
@@ -22,7 +23,7 @@ pub struct TargetObjectUnderReviewCreateModel {
 
 #[derive(Deserialize, Clone)]
 pub struct TOURElementaryThreatUpdateModel {
-    pub elementary_threat_code: String,
+    pub et_code: String,
     pub relevance: i32,
     pub comment: String,
     pub reviewed: bool

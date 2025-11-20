@@ -83,7 +83,7 @@ impl GeneralService<RiskAnalysisProcessResponse, RiskAnalysisProcessCreateModel>
 INSERT INTO tour_elementary_threat
 SELECT target_object_under_review.risk_analysis_process_code AS risk_analysis_process_code,
        target_object_under_review.asset_code as asset_code,
-       it_grundschutz_elementary_threat.code as it_grundschutz_elementary_threat_code,
+       it_grundschutz_elementary_threat.code as it_grundschutz_et_code,
        $2,
        '',
        FALSE
@@ -184,7 +184,7 @@ impl From<TOURThreatOverviewModel> for TOURThreatOverviewResponse {
 }
 
 pub struct TOURElementaryThreatModel {
-    pub elementary_threat_code: String,
+    pub et_code: String,
     pub relevance: i32,
     pub comment: String,
     pub reviewed: bool,
@@ -192,7 +192,7 @@ pub struct TOURElementaryThreatModel {
 
 #[derive(Serialize)]
 pub struct TOURElementaryThreatResponse {
-    pub elementary_threat_code: String,
+    pub et_code: String,
     pub relevance: i32,
     pub comment: String,
     pub reviewed: bool,
@@ -201,7 +201,7 @@ pub struct TOURElementaryThreatResponse {
 impl From<TOURElementaryThreatModel> for TOURElementaryThreatResponse {
     fn from(model: TOURElementaryThreatModel) -> Self {
         Self {
-            elementary_threat_code: model.elementary_threat_code,
+            et_code: model.et_code,
             relevance: model.relevance,
             comment: model.comment,
             reviewed: model.reviewed,
@@ -279,12 +279,12 @@ ORDER BY CODE
         let res: Vec<TOURElementaryThreatModel> =  sqlx::query_as!(TOURElementaryThreatModel,
             r#"
             SELECT
-            iget.code AS elementary_threat_code,
+            iget.code AS et_code,
             tet.relevance,
             tet.comment,
             tet.reviewed
             FROM tour_elementary_threat AS tet
-            INNER JOIN it_grundschutz_elementary_threat AS iget ON iget.code = tet.it_grundschutz_elementary_threat_code
+            INNER JOIN it_grundschutz_elementary_threat AS iget ON iget.code = tet.it_grundschutz_et_code
             INNER JOIN asset AS a ON a.code = tet.asset_code
             WHERE tet.risk_analysis_process_code = $1 AND tet.asset_code = $2
             ORDER BY iget.code
@@ -302,7 +302,7 @@ ORDER BY CODE
             INSERT INTO tour_elementary_threat (
                 risk_analysis_process_code,
                 asset_code,
-                it_grundschutz_elementary_threat_code,
+                it_grundschutz_et_code,
                 relevance,
                 comment,
                 reviewed
@@ -313,7 +313,7 @@ ORDER BY CODE
                 $4::INTEGER[],
                 $5::TEXT[],
                 $6::BOOLEAN[]
-            ) ON CONFLICT (risk_analysis_process_code, asset_code, it_grundschutz_elementary_threat_code) DO UPDATE SET
+            ) ON CONFLICT (risk_analysis_process_code, asset_code, it_grundschutz_et_code) DO UPDATE SET
                 relevance = EXCLUDED.relevance,
                 comment = EXCLUDED.comment,
                 reviewed = EXCLUDED.reviewed
@@ -321,7 +321,7 @@ ORDER BY CODE
         )
             .bind(vec![code.to_owned(); update.len()])
             .bind(vec![asset.to_owned(); update.len()])
-            .bind(update.iter().map(|i| i.elementary_threat_code.clone()).collect::<Vec<String>>())
+            .bind(update.iter().map(|i| i.et_code.clone()).collect::<Vec<String>>())
             .bind(update.iter().map(|i| i.relevance.clone()).collect::<Vec<i32>>())
             .bind(update.iter().map(|i| i.comment.clone()).collect::<Vec<String>>())
             .bind(update.iter().map(|i| i.reviewed.clone()).collect::<Vec<bool>>())

@@ -4,7 +4,7 @@ use serde::Deserialize;
 pub struct TOURElementaryThreatRiskClassificationModel {
     pub risk_analysis_process_code: String,
     pub asset_code: String,
-    pub tour_elementary_threat_code: String,
+    pub tour_et_code: String,
     pub frequency_of_occurrence: i32,
     pub potential_damage: i32,
     pub description: String,
@@ -15,7 +15,7 @@ pub struct TOURElementaryThreatRiskClassificationModel {
 pub struct TOURSpecificThreatRiskClassificationModel {
     pub risk_analysis_process_code: String,
     pub asset_code: String,
-    pub tour_specific_threat_code: String,
+    pub tour_st_code: String,
     pub frequency_of_occurrence: i32,
     pub potential_damage: i32,
     pub description: String,

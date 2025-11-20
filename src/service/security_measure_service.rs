@@ -49,7 +49,7 @@ impl SecurityMeasureService {
     pub async fn list_by_asset_code(db: &Pool<Postgres>, asset_code: String) -> ApiResult<Vec<SecurityMeasureModel>> {
         Ok(sqlx::query_as!(SecurityMeasureModel, r#"
         SELECT sm.* from security_measure sm
-        INNER JOIN asset_security_measure_list asm ON asm.security_measure_code = sm.code
+        INNER JOIN asset_sm_list asm ON asm.sm_code = sm.code
         WHERE asm.asset_code = $1
          "#, asset_code).fetch_all(db).await?)
     }

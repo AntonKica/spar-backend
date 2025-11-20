@@ -18,9 +18,9 @@ CREATE TABLE target_object_under_review(risk_analysis_process_code CHAR(8) NOT N
 
 CREATE TABLE tour_elementary_threat(risk_analysis_process_code CHAR(8) NOT NULL REFERENCES risk_analysis_process(code),
                                     asset_code VARCHAR(20) NOT NULL REFERENCES asset(code),
-                                    it_grundschutz_elementary_threat_code VARCHAR(20) NOT NULL REFERENCES it_grundschutz_elementary_threat(code),
+                                    it_grundschutz_et_code VARCHAR(20) NOT NULL REFERENCES it_grundschutz_elementary_threat(code),
                                     relevance INTEGER NOT NULL,
                                     comment TEXT NOT NULL,
                                     reviewed BOOLEAN NOT NULL,
-    PRIMARY KEY (risk_analysis_process_code, asset_code, it_grundschutz_elementary_threat_code)
+    PRIMARY KEY (risk_analysis_process_code, asset_code, it_grundschutz_et_code)
 );

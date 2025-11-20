@@ -4,7 +4,7 @@ use spar_backend::configuration::AppConfig;
 use spar_backend::create_connection;
 use spar_backend::enums::asset_enums::AssetType;
 use spar_backend::enums::fulfilled_threat_enums::TimeCostUnit;
-use spar_backend::enums::ProtectionNeeds;
+use spar_backend::enums::asset_enums::ProtectionNeeds;
 use spar_backend::model::asset_model::AssetCreateModel;
 use spar_backend::model::fulfilled_threat_models::FulfilledThreatCreateModel;
 use spar_backend::model::security_measure_models::SecurityMeasureCreateModel;
@@ -15,11 +15,11 @@ use spar_backend::service::risk_analysis_process_service::RiskAnalysisProcessSer
 use spar_backend::service::security_measure_service::SecurityMeasureService;
 
 async fn clear_database(tx: &mut PgConnection) {
-    sqlx::query(r#"DELETE FROM risk_analysis_process_tour_list"#).execute(&mut *tx).await.unwrap();
+    sqlx::query(r#"DELETE FROM rap_tour_list"#).execute(&mut *tx).await.unwrap();
     sqlx::query(r#"DELETE FROM risk_analysis_process"#).execute(&mut *tx).await.unwrap();
 
-    sqlx::query(r#"DELETE FROM asset_fulfilled_threat_list"#).execute(&mut *tx).await.unwrap();
-    sqlx::query(r#"DELETE FROM asset_security_measure_list"#).execute(&mut *tx).await.unwrap();
+    sqlx::query(r#"DELETE FROM asset_ft_list"#).execute(&mut *tx).await.unwrap();
+    sqlx::query(r#"DELETE FROM asset_sm_list"#).execute(&mut *tx).await.unwrap();
     sqlx::query(r#"DELETE FROM fulfilled_threat"#).execute(&mut *tx).await.unwrap();
     sqlx::query(r#"DELETE FROM security_measure"#).execute(&mut *tx).await.unwrap();
     sqlx::query(r#"DELETE FROM asset"#).execute(&mut *tx).await.unwrap();
@@ -74,8 +74,8 @@ async fn create_assets() {
     }).await.unwrap();
 
     let fth = FulfilledThreatService::create(&mut *tx, FulfilledThreatCreateModel {
-                                       elementary_threat_code: Some("G-17".to_owned()),
-                                       specific_threat_code: None,
+                                       et_code: Some("G-17".to_owned()),
+                                       st_code: None,
                                        time_cost: Some(1),
                                        time_cost_unit: Some(TimeCostUnit::Weeks),
                                        monetary_cost: Some(2000),

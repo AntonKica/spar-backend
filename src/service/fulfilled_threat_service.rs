@@ -15,8 +15,8 @@ impl FulfilledThreatService {
         sqlx::query_as!(FulfilledThreatCreateModel,
         r#"INSERT INTO fulfilled_threat VALUES ($1,$2,$3,$4,$5,$6,$7)"#,
             code,
-            create_model.elementary_threat_code,
-            create_model.specific_threat_code,
+            create_model.et_code,
+            create_model.st_code,
             create_model.time_cost,
             create_model.time_cost_unit.map(|tcu| tcu as i32),
             create_model.monetary_cost,
@@ -31,8 +31,8 @@ impl FulfilledThreatService {
         let res_elementary = sqlx::query_as!(FulfilledThreatDetailModel,
             r#"
 SELECT ft.code,
-       ft.elementary_threat_code,
-       ft.specific_threat_code,
+       ft.et_code,
+       ft.st_code,
        et.name as threat_name,
        ft.time_cost,
        ft.time_cost_unit,
@@ -42,7 +42,7 @@ SELECT ft.code,
        et.integrity_impaired,
        et.availability_impaired
 FROM fulfilled_threat AS ft
-         INNER JOIN elementary_threat et ON ft.elementary_threat_code = et.code
+         INNER JOIN elementary_threat et ON ft.et_code = et.code
 "#)
             .fetch_all(db)
             .await?;
@@ -50,8 +50,8 @@ FROM fulfilled_threat AS ft
         let res_specific = sqlx::query_as!(FulfilledThreatDetailModel,
             r#"
 SELECT ft.code,
-       ft.elementary_threat_code,
-       ft.specific_threat_code,
+       ft.et_code,
+       ft.st_code,
        st.name as threat_name,
        ft.time_cost,
        ft.time_cost_unit,
@@ -61,7 +61,7 @@ SELECT ft.code,
        st.integrity_impaired,
        st.availability_impaired
 FROM fulfilled_threat AS ft
-         INNER JOIN specific_threat st ON ft.elementary_threat_code = st.code
+         INNER JOIN specific_threat st ON ft.et_code = st.code
 "#)
             .fetch_all(db)
             .await?;
@@ -73,8 +73,8 @@ FROM fulfilled_threat AS ft
         let res_elementary = sqlx::query_as!(FulfilledThreatDetailModel,
             r#"
 SELECT ft.code,
-       ft.elementary_threat_code,
-       ft.specific_threat_code,
+       ft.et_code,
+       ft.st_code,
        et.name as threat_name,
        ft.time_cost,
        ft.time_cost_unit,
@@ -84,8 +84,8 @@ SELECT ft.code,
        et.integrity_impaired,
        et.availability_impaired
 FROM fulfilled_threat ft
-         INNER JOIN elementary_threat et ON ft.elementary_threat_code = et.code
-         INNER JOIN asset_fulfilled_threat_list aft ON aft.fulfilled_threat_code = ft.code
+         INNER JOIN elementary_threat et ON ft.et_code = et.code
+         INNER JOIN asset_ft_list aft ON aft.ft_code = ft.code
          WHERE aft.asset_code = $1
 "#,asset_code.clone())
             .fetch_all(db)
@@ -94,8 +94,8 @@ FROM fulfilled_threat ft
         let res_specific = sqlx::query_as!(FulfilledThreatDetailModel,
             r#"
 SELECT ft.code,
-       ft.elementary_threat_code,
-       ft.specific_threat_code,
+       ft.et_code,
+       ft.st_code,
        st.name as threat_name,
        ft.time_cost,
        ft.time_cost_unit,
@@ -105,8 +105,8 @@ SELECT ft.code,
        st.integrity_impaired,
        st.availability_impaired
 FROM fulfilled_threat AS ft
-         INNER JOIN specific_threat st ON ft.elementary_threat_code = st.code
-         INNER JOIN asset_fulfilled_threat_list aft ON aft.fulfilled_threat_code = ft.code
+         INNER JOIN specific_threat st ON ft.et_code = st.code
+         INNER JOIN asset_ft_list aft ON aft.ft_code = ft.code
          WHERE aft.asset_code = $1
 "#,asset_code.clone())
             .fetch_all(db)

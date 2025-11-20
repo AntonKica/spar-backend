@@ -54,7 +54,7 @@ async fn get_list(
     }
 }
 
-#[get("/{rap_code}/detail")]
+#[get("/{rap_code}")]
 async fn get_detail(
     data: web::Data<AppState>,
     path: Path<String>,

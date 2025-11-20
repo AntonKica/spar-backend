@@ -62,7 +62,7 @@ impl RiskAnalysisProcessService {
         tour_code_list: Vec<String>
     ) -> ApiResult<()> {
         sqlx::query!(
-            r#"DELETE FROM risk_analysis_process_tour_list WHERE risk_analysis_process_code = $1"#,
+            r#"DELETE FROM rap_tour_list WHERE rap_code = $1"#,
             rap_code.clone()
         )
             .execute(&mut *tx)
@@ -70,7 +70,7 @@ impl RiskAnalysisProcessService {
 
         sqlx::query(
             r#"
-            INSERT INTO risk_analysis_process_tour_list
+            INSERT INTO rap_tour_list
             SELECT * FROM UNNEST(
                 $1::CHAR(10)[],
                 $2::CHAR(10)[]

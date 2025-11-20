@@ -64,9 +64,9 @@ impl AssetService {
             sqlx::query_as!(AssetModel,
                 r#"
                 SELECT * FROM asset
-                 WHERE EXISTS(SELECT * FROM risk_analysis_process_tour_list
-                     WHERE asset.code = risk_analysis_process_tour_list.asset_code
-                     AND risk_analysis_process_tour_list.risk_analysis_process_code = $1
+                 WHERE EXISTS(SELECT * FROM rap_tour_list
+                     WHERE asset.code = rap_tour_list.asset_code
+                     AND rap_tour_list.rap_code = $1
                      LIMIT 1
                  )
                 "#, rap_code)
@@ -78,9 +78,9 @@ impl AssetService {
     pub async fn assign_security_measure(
         tx: &mut PgConnection,
         asset_code: String,
-        security_measure_code: String,
+        sm_code: String,
     ) -> ApiResult<()> {
-        sqlx::query!(r#"INSERT INTO asset_security_measure_list VALUES ($1, $2)"#, asset_code, security_measure_code).execute(&mut *tx).await?;
+        sqlx::query!(r#"INSERT INTO asset_sm_list VALUES ($1, $2)"#, asset_code, sm_code).execute(&mut *tx).await?;
 
         Ok(())
     }
@@ -88,9 +88,9 @@ impl AssetService {
     pub async fn assign_fulfilled_threat(
         tx: &mut PgConnection,
         asset_code: String,
-        fulfilled_threat_code: String,
+        ft_code: String,
     ) -> ApiResult<()> {
-        sqlx::query!(r#"INSERT INTO asset_fulfilled_threat_list VALUES ($1, $2)"#, asset_code, fulfilled_threat_code).execute(&mut *tx).await?;
+        sqlx::query!(r#"INSERT INTO asset_ft_list VALUES ($1, $2)"#, asset_code, ft_code).execute(&mut *tx).await?;
 
         Ok(())
     }

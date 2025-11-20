@@ -12,7 +12,7 @@ pub struct RiskClassificationService{}
 
 #[derive(Serialize)]
 pub struct TOURElementaryThreatRiskClassificationResponse {
-    tour_elementary_threat_code: String,
+    tour_et_code: String,
     frequency_of_occurrence: i32,
     potential_damage: i32,
     description: String,
@@ -22,7 +22,7 @@ pub struct TOURElementaryThreatRiskClassificationResponse {
 impl From<TOURElementaryThreatRiskClassificationModel> for TOURElementaryThreatRiskClassificationResponse {
     fn from(model: TOURElementaryThreatRiskClassificationModel) -> Self {
         Self {
-            tour_elementary_threat_code: model.tour_elementary_threat_code.to_owned(),
+            tour_et_code: model.tour_et_code.to_owned(),
             frequency_of_occurrence: model.frequency_of_occurrence,
             potential_damage: model.potential_damage,
             description: model.description.to_owned(),
@@ -33,7 +33,7 @@ impl From<TOURElementaryThreatRiskClassificationModel> for TOURElementaryThreatR
 
 #[derive(Serialize)]
 pub struct TOURSpecificThreatRiskClassificationResponse {
-    tour_specific_threat_code: String,
+    tour_st_code: String,
     frequency_of_occurrence: i32,
     potential_damage: i32,
     description: String,
@@ -43,7 +43,7 @@ pub struct TOURSpecificThreatRiskClassificationResponse {
 impl From<TOURSpecificThreatRiskClassificationModel> for TOURSpecificThreatRiskClassificationResponse {
     fn from(model: TOURSpecificThreatRiskClassificationModel) -> Self {
         Self {
-            tour_specific_threat_code: model.tour_specific_threat_code.to_owned(),
+            tour_st_code: model.tour_st_code.to_owned(),
             frequency_of_occurrence: model.frequency_of_occurrence,
             potential_damage: model.potential_damage,
             description: model.description.to_owned(),
@@ -63,7 +63,7 @@ impl RiskClassificationService {
 INSERT INTO tour_elementary_threat_risk_classification
 SELECT risk_analysis_process_code,
        asset_code,
-       it_grundschutz_elementary_threat_code,
+       it_grundschutz_et_code,
        $3,
        $4,
        '',
@@ -107,7 +107,7 @@ WHERE risk_analysis_process_code = $1
             r#"
             SELECT * FROM tour_elementary_threat_risk_classification
             WHERE risk_analysis_process_code = $1 AND asset_code = $2
-            ORDER BY tour_elementary_threat_code
+            ORDER BY tour_et_code
             "#,
             rap.clone(),
             asset.clone(),
@@ -117,7 +117,7 @@ WHERE risk_analysis_process_code = $1
             r#"
             SELECT * FROM tour_specific_threat_risk_classification
             WHERE risk_analysis_process_code = $1 AND asset_code = $2
-            ORDER BY tour_specific_threat_code
+            ORDER BY tour_st_code
             "#,
             rap.clone(),
             asset.clone(),
@@ -133,7 +133,7 @@ WHERE risk_analysis_process_code = $1
         sqlx::query!(
         r#"UPDATE tour_elementary_threat_risk_classification
         SET frequency_of_occurrence = $4, potential_damage = $5, description = $6, evaluation = $7
-        WHERE risk_analysis_process_code = $1 AND asset_code = $2 AND tour_elementary_threat_code = $3"#,
+        WHERE risk_analysis_process_code = $1 AND asset_code = $2 AND tour_et_code = $3"#,
             rap,
             asset,
             threat,
@@ -152,7 +152,7 @@ WHERE risk_analysis_process_code = $1
         sqlx::query!(
         r#"UPDATE tour_specific_threat_risk_classification
         SET frequency_of_occurrence = $4, potential_damage = $5, description = $6, evaluation = $7
-        WHERE risk_analysis_process_code = $1 AND asset_code = $2 AND tour_specific_threat_code = $3"#,
+        WHERE risk_analysis_process_code = $1 AND asset_code = $2 AND tour_st_code = $3"#,
             rap,
             asset,
             threat,

@@ -10,7 +10,7 @@ pub struct RiskTreatmentService{}
 
 #[derive(Serialize)]
 pub struct TOURElementaryThreatRiskTreatmentResponse {
-    tour_elementary_threat_code: String,
+    tour_et_code: String,
     potential_risk: i32,
     remaining_risk: i32,
     risk_treatment: i32,
@@ -20,7 +20,7 @@ pub struct TOURElementaryThreatRiskTreatmentResponse {
 impl From<TOURElementaryThreatRiskTreatmentModel> for TOURElementaryThreatRiskTreatmentResponse {
     fn from(model: TOURElementaryThreatRiskTreatmentModel) -> Self {
         Self {
-            tour_elementary_threat_code: model.tour_elementary_threat_code.to_owned(),
+            tour_et_code: model.tour_et_code.to_owned(),
             potential_risk: model.potential_risk,
             remaining_risk: model.remaining_risk,
             risk_treatment: model.risk_treatment,
@@ -31,7 +31,7 @@ impl From<TOURElementaryThreatRiskTreatmentModel> for TOURElementaryThreatRiskTr
 
 #[derive(Serialize)]
 pub struct TOURSpecificThreatRiskTreatmentResponse {
-    tour_specific_threat_code: String,
+    tour_st_code: String,
     potential_risk: i32,
     remaining_risk: i32,
     risk_treatment: i32,
@@ -41,7 +41,7 @@ pub struct TOURSpecificThreatRiskTreatmentResponse {
 impl From<TOURSpecificThreatRiskTreatmentModel> for TOURSpecificThreatRiskTreatmentResponse {
     fn from(model: TOURSpecificThreatRiskTreatmentModel) -> Self {
         Self {
-            tour_specific_threat_code: model.tour_specific_threat_code.to_owned(),
+            tour_st_code: model.tour_st_code.to_owned(),
             potential_risk: model.potential_risk,
             remaining_risk: model.remaining_risk,
             risk_treatment: model.risk_treatment,
@@ -107,7 +107,7 @@ impl RiskTreatmentService {
         let risk_classification_list: Vec<RiskClassificationRow> = sqlx::query_as!(RiskClassificationRow, r#"
 SELECT
     asset_code,
-    tour_elementary_threat_code as threat_code,
+    tour_et_code as threat_code,
     frequency_of_occurrence,
     potential_damage
 FROM tour_elementary_threat_risk_classification
@@ -119,7 +119,7 @@ FROM tour_elementary_threat_risk_classification
             INSERT INTO tour_elementary_threat_risk_treatment (
                 risk_analysis_process_code,
                 asset_code,
-                tour_elementary_threat_code,
+                tour_et_code,
                 potential_risk,
                 remaining_risk,
                 risk_treatment,
@@ -147,7 +147,7 @@ FROM tour_elementary_threat_risk_classification
         let risk_classification_list: Vec<RiskClassificationRow> = sqlx::query_as!(RiskClassificationRow, r#"
 SELECT
     asset_code,
-    tour_specific_threat_code as threat_code,
+    tour_st_code as threat_code,
     frequency_of_occurrence,
     potential_damage
 FROM tour_specific_threat_risk_classification
@@ -159,7 +159,7 @@ FROM tour_specific_threat_risk_classification
             INSERT INTO tour_specific_threat_risk_treatment (
                 risk_analysis_process_code,
                 asset_code,
-                tour_specific_threat_code,
+                tour_st_code,
                 potential_risk,
                 remaining_risk,
                 risk_treatment,
@@ -193,7 +193,7 @@ FROM tour_specific_threat_risk_classification
             r#"
             SELECT * FROM tour_elementary_threat_risk_treatment
             WHERE risk_analysis_process_code = $1 AND asset_code = $2
-            ORDER BY tour_elementary_threat_code
+            ORDER BY tour_et_code
             "#,
             rap.clone(),
             asset.clone(),
@@ -203,7 +203,7 @@ FROM tour_specific_threat_risk_classification
             r#"
             SELECT * FROM tour_specific_threat_risk_treatment
             WHERE risk_analysis_process_code = $1 AND asset_code = $2
-            ORDER BY tour_specific_threat_code
+            ORDER BY tour_st_code
             "#,
             rap.clone(),
             asset.clone(),
@@ -220,7 +220,7 @@ FROM tour_specific_threat_risk_classification
         sqlx::query!(
         r#"UPDATE tour_specific_threat_risk_treatment
         SET potential_risk = $4, remaining_risk = $5, risk_treatment = $6, description = $7
-        WHERE risk_analysis_process_code = $1 AND asset_code = $2 AND tour_specific_threat_code = $3"#,
+        WHERE risk_analysis_process_code = $1 AND asset_code = $2 AND tour_st_code = $3"#,
             rap,
             asset,
             threat,
@@ -238,7 +238,7 @@ FROM tour_specific_threat_risk_classification
         sqlx::query!(
         r#"UPDATE tour_elementary_threat_risk_treatment
         SET potential_risk = $4, remaining_risk = $5, risk_treatment = $6, description = $7
-        WHERE risk_analysis_process_code = $1 AND asset_code = $2 AND tour_elementary_threat_code = $3"#,
+        WHERE risk_analysis_process_code = $1 AND asset_code = $2 AND tour_et_code = $3"#,
             rap,
             asset,
             threat,

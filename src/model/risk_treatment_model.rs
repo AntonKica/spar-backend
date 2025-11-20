@@ -4,7 +4,7 @@ use serde::Deserialize;
 pub struct TOURElementaryThreatRiskTreatmentModel {
     pub risk_analysis_process_code: String,
     pub asset_code: String,
-    pub tour_elementary_threat_code: String,
+    pub tour_et_code: String,
     pub potential_risk: i32,
     pub remaining_risk: i32,
     pub risk_treatment: i32,
@@ -15,7 +15,7 @@ pub struct TOURElementaryThreatRiskTreatmentModel {
 pub struct TOURSpecificThreatRiskTreatmentModel {
     pub risk_analysis_process_code: String,
     pub asset_code: String,
-    pub tour_specific_threat_code: String,
+    pub tour_st_code: String,
     pub potential_risk: i32,
     pub remaining_risk: i32,
     pub risk_treatment: i32,
