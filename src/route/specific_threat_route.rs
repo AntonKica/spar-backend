@@ -1,6 +1,6 @@
 use crate::service::ApiError;
 use actix_web::web::Path;
-use actix_web::ResponseError;
+use actix_web::{post, ResponseError};
 use crate::api::{ApiCodeResponse, ApiResponse};
 use actix_web::HttpResponse;
 use crate::service::GeneralService;
@@ -22,7 +22,7 @@ impl GeneralRoute for SpecificThreatRoute {
     }
 }
 
-#[get("")]
+#[post("")]
 async fn create(
     data: web::Data<AppState>,
     body: web::Json<SpecificThreatCreateModel>

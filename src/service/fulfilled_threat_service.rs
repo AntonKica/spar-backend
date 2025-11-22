@@ -105,7 +105,7 @@ SELECT ft.code,
        st.integrity_impaired,
        st.availability_impaired
 FROM fulfilled_threat AS ft
-         INNER JOIN specific_threat st ON ft.et_code = st.code
+         INNER JOIN specific_threat st ON ft.st_code = st.code
          INNER JOIN asset_ft_list aft ON aft.ft_code = ft.code
          WHERE aft.asset_code = $1
 "#,asset_code.clone())

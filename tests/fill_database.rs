@@ -1,4 +1,3 @@
-use std::fmt::format;
 use sqlx::PgConnection;
 use spar_backend::configuration::AppConfig;
 use spar_backend::create_connection;
@@ -7,9 +6,7 @@ use spar_backend::enums::fulfilled_threat_enums::TimeCostUnit;
 use spar_backend::enums::asset_enums::ProtectionNeeds;
 use spar_backend::enums::risk_analysis_process_enums::ProcessStep;
 use spar_backend::enums::step_2_threat_identification_enums::ElementaryThreatRelevance;
-use spar_backend::model::asset_model::AssetCreateModel;
-use spar_backend::model::fulfilled_threat_models::FulfilledThreatCreateModel;
-use spar_backend::model::security_measure_models::SecurityMeasureCreateModel;
+use spar_backend::model::asset_model::AssetCreateModel; use spar_backend::model::fulfilled_threat_models::FulfilledThreatCreateModel; use spar_backend::model::security_measure_models::SecurityMeasureCreateModel;
 use spar_backend::model::specific_threat_model::SpecificThreatCreateModel;
 use spar_backend::model::step_2_threat_identification_models::{TourEtReviewModel, TourStReviewModel};
 use spar_backend::service::asset_service::AssetService;
@@ -98,6 +95,14 @@ async fn create_assets() {
                                        monetary_cost: Some(2000),
                                        description: "horelo".to_owned(),
     }).await.unwrap();
+    let fth2 = FulfilledThreatService::create(&mut *tx, FulfilledThreatCreateModel {
+        et_code: None,
+        st_code: Some(sth.clone()),
+        time_cost: Some(1),
+        time_cost_unit: Some(TimeCostUnit::Weeks),
+        monetary_cost: Some(2000),
+        description: "horelo".to_owned(),
+    }).await.unwrap();
 
     let sm = SecurityMeasureService::create(&mut tx, SecurityMeasureCreateModel{
         name: "prvé bezpečnostné opatrenie".to_owned(),
@@ -108,6 +113,7 @@ async fn create_assets() {
     }).await.unwrap();
 
     AssetService::assign_fulfilled_threat(&mut *tx, bp.clone(), fth).await.unwrap();
+    AssetService::assign_fulfilled_threat(&mut *tx, bp.clone(), fth2).await.unwrap();
     AssetService::assign_security_measure(&mut *tx, bp.clone(), sm).await.unwrap();
 
     let rap = RiskAnalysisProcessService::create(&mut *tx).await.unwrap();
