@@ -7,8 +7,7 @@ pub mod specific_threat_model;
 pub mod risk_analysis_process_models;
 pub mod step_2_threat_identification_models;
 
-use serde::{Deserialize, Serialize};
-use serde_json::{ Value};
+use serde::{Deserialize};
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct RiskAnalysisProcessCreateModel {
