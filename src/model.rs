@@ -3,7 +3,7 @@ pub mod risk_treatment_model;
 pub mod asset_model;
 pub mod fulfilled_threat_models;
 pub mod security_measure_models;
-pub mod specific_threat_model;
+pub mod threat_models;
 pub mod risk_analysis_process_models;
 pub mod step_2_threat_identification_models;
 

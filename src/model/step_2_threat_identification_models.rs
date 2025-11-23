@@ -1,54 +1,29 @@
 use serde::{Deserialize, Serialize};
-use crate::enums::step_2_threat_identification_enums::ElementaryThreatRelevance;
+use crate::enums::step_2_threat_identification_enums::ThreatRelevance;
+use crate::model::threat_models::ThreatModel;
 
 #[derive(Deserialize)]
-pub struct TourEtReviewModel {
-    pub relevance: ElementaryThreatRelevance,
-    pub explanation: String,
-}
-
-#[derive(Deserialize)]
-pub struct TourStReviewModel {
-    pub relevant: bool,
+pub struct TourThreatReviewModel {
+    pub relevance: ThreatRelevance,
     pub explanation: String,
 }
 
 #[derive(Serialize)]
-pub struct TourEtModel {
-    pub rap_code: String,
-    pub tour_code: String,
-    pub et_code: String,
+pub struct TourThreatModel {
+    pub threat_code: String,
+    pub threat_name: String,
     pub relevance: i32,
-    pub explanation: String,
-}
-
-#[derive(Serialize)]
-pub struct TourStModel {
-    pub tour_code: String,
-    pub st_code: String,
-    pub st_name: String,
     pub explanation: String,
 }
 #[derive(Serialize)]
 pub struct TourThreatIdentificationModel {
     pub tour_code: String,
     pub tour_name: String,
-    pub et_list: Vec<TourEtModel>,
-    pub st_list: Vec<TourStModel>
-}
-#[derive(Serialize)]
-pub struct EtSummaryModel {
-    pub et_code: String,
-    pub relevance: i32,
-}
-#[derive(Serialize)]
-pub struct StSummaryModel {
-    pub st_code: String,
-    pub st_name: String,
+    pub threat_list: Vec<TourThreatModel>,
 }
 
 #[derive(Serialize)]
-pub struct ThreatSummaryModel {
-    pub et_list: Vec<EtSummaryModel>,
-    pub st_list: Vec<StSummaryModel>
+pub struct TourThreatSummaryModel {
+    pub threat_list: Vec<ThreatModel>,
+    pub tour_threat_list: Vec<TourThreatIdentificationModel>,
 }

@@ -5,21 +5,20 @@ use spar_backend::enums::asset_enums::AssetType;
 use spar_backend::enums::fulfilled_threat_enums::TimeCostUnit;
 use spar_backend::enums::asset_enums::ProtectionNeeds;
 use spar_backend::enums::risk_analysis_process_enums::ProcessStep;
-use spar_backend::enums::step_2_threat_identification_enums::ElementaryThreatRelevance;
+use spar_backend::enums::step_2_threat_identification_enums::ThreatRelevance;
 use spar_backend::model::asset_model::AssetCreateModel; use spar_backend::model::fulfilled_threat_models::FulfilledThreatCreateModel; use spar_backend::model::security_measure_models::SecurityMeasureCreateModel;
-use spar_backend::model::specific_threat_model::SpecificThreatCreateModel;
-use spar_backend::model::step_2_threat_identification_models::{TourEtReviewModel, TourStReviewModel};
+use spar_backend::model::threat_models::ThreatCreateModel;
+use spar_backend::model::step_2_threat_identification_models::{TourThreatReviewModel};
 use spar_backend::service::asset_service::AssetService;
 use spar_backend::service::fulfilled_threat_service::FulfilledThreatService;
 use spar_backend::service::GeneralService;
 use spar_backend::service::risk_analysis_process_service::RiskAnalysisProcessService;
 use spar_backend::service::security_measure_service::SecurityMeasureService;
-use spar_backend::service::specific_threat_service::SpecificThreatService;
+use spar_backend::service::threat_service::ThreatService;
 use spar_backend::service::step_2_threat_idenfication_service::Step2ThreatIdentificationService;
 
 async fn clear_database(tx: &mut PgConnection) {
-    sqlx::query(r#"DELETE FROM tour_et_list"#).execute(&mut *tx).await.unwrap();
-    sqlx::query(r#"DELETE FROM tour_st_list"#).execute(&mut *tx).await.unwrap();
+    sqlx::query(r#"DELETE FROM tour_threat_list"#).execute(&mut *tx).await.unwrap();
     sqlx::query(r#"DELETE FROM rap_tour_list"#).execute(&mut *tx).await.unwrap();
     sqlx::query(r#"DELETE FROM risk_analysis_process"#).execute(&mut *tx).await.unwrap();
 
@@ -28,7 +27,7 @@ async fn clear_database(tx: &mut PgConnection) {
     sqlx::query(r#"DELETE FROM fulfilled_threat"#).execute(&mut *tx).await.unwrap();
     sqlx::query(r#"DELETE FROM security_measure"#).execute(&mut *tx).await.unwrap();
     sqlx::query(r#"DELETE FROM asset"#).execute(&mut *tx).await.unwrap();
-    sqlx::query(r#"DELETE FROM specific_threat"#).execute(&mut *tx).await.unwrap();
+    sqlx::query(r#"DELETE FROM threat WHERE code NOT SIMILAR TO 'G-\d\d'"#).execute(&mut *tx).await.unwrap();
 }
 #[tokio::test]
 async fn create_assets() {
@@ -79,7 +78,7 @@ async fn create_assets() {
         description: "kancelárske nástroje".to_string(),
     }).await.unwrap();
     
-    let sth = SpecificThreatService::create(&mut *tx, SpecificThreatCreateModel{
+    let sth = ThreatService::create(&mut *tx, ThreatCreateModel {
         name: "first specific threat".to_string(),
         confidentiality_impaired: true,
         integrity_impaired: false,
@@ -88,16 +87,14 @@ async fn create_assets() {
     }).await.unwrap();
 
     let fth = FulfilledThreatService::create(&mut *tx, FulfilledThreatCreateModel {
-                                       et_code: Some("G-17".to_owned()),
-                                       st_code: None,
+                                       threat_code: "G-17".to_owned(),
                                        time_cost: Some(1),
                                        time_cost_unit: Some(TimeCostUnit::Weeks),
                                        monetary_cost: Some(2000),
                                        description: "horelo".to_owned(),
     }).await.unwrap();
     let fth2 = FulfilledThreatService::create(&mut *tx, FulfilledThreatCreateModel {
-        et_code: None,
-        st_code: Some(sth.clone()),
+        threat_code: sth.clone(),
         time_cost: Some(1),
         time_cost_unit: Some(TimeCostUnit::Weeks),
         monetary_cost: Some(2000),
@@ -120,33 +117,33 @@ async fn create_assets() {
     RiskAnalysisProcessService::set_tour(&mut *tx, rap.clone(), vec![bp.clone(), switch.clone()]).await.unwrap();
     RiskAnalysisProcessService::step_complete(&mut *tx, rap.clone(), ProcessStep::Step1SelectTour).await.unwrap();
 
-    Step2ThreatIdentificationService::elementary_threat_review(&mut *tx, rap.clone(), bp.clone(), "G-01".to_owned(), TourEtReviewModel {
-        relevance: ElementaryThreatRelevance::Indirect,
+    Step2ThreatIdentificationService::threat_review(&mut *tx, rap.clone(), bp.clone(), "G-01".to_owned(), TourThreatReviewModel {
+        relevance: ThreatRelevance::Indirect,
         explanation: "Len tak".to_string(),
     }).await.unwrap();
 
-    Step2ThreatIdentificationService::elementary_threat_review(&mut *tx, rap.clone(), bp.clone(), "G-02".to_owned(), TourEtReviewModel {
-        relevance: ElementaryThreatRelevance::Indirect,
+    Step2ThreatIdentificationService::threat_review(&mut *tx, rap.clone(), bp.clone(), "G-02".to_owned(), TourThreatReviewModel {
+        relevance: ThreatRelevance::Indirect,
         explanation: "Len tak".to_string(),
     }).await.unwrap();
 
-    Step2ThreatIdentificationService::elementary_threat_review(&mut *tx, rap.clone(), bp.clone(), "G-03".to_owned(), TourEtReviewModel {
-        relevance: ElementaryThreatRelevance::Direct,
+    Step2ThreatIdentificationService::threat_review(&mut *tx, rap.clone(), bp.clone(), "G-03".to_owned(), TourThreatReviewModel {
+        relevance: ThreatRelevance::Direct,
         explanation: "Len tak".to_string(),
     }).await.unwrap();
 
-    Step2ThreatIdentificationService::specific_threat_review(&mut *tx, rap.clone(), bp.clone(), sth.clone(), TourStReviewModel {
-        relevant: true,
+    Step2ThreatIdentificationService::threat_review(&mut *tx, rap.clone(), bp.clone(), sth.clone(), TourThreatReviewModel {
+        relevance: ThreatRelevance::Direct,
         explanation: "Len tak".to_string(),
     }).await.unwrap();
 
-    Step2ThreatIdentificationService::elementary_threat_review(&mut *tx, rap.clone(), switch.clone(), "G-01".to_owned(), TourEtReviewModel {
-        relevance: ElementaryThreatRelevance::Direct,
+    Step2ThreatIdentificationService::threat_review(&mut *tx, rap.clone(), switch.clone(), "G-01".to_owned(), TourThreatReviewModel {
+        relevance: ThreatRelevance::Direct,
         explanation: "Len tak".to_string(),
     }).await.unwrap();
 
-    Step2ThreatIdentificationService::specific_threat_review(&mut *tx, rap.clone(), switch.clone(), sth.clone(), TourStReviewModel {
-        relevant: true,
+    Step2ThreatIdentificationService::threat_review(&mut *tx, rap.clone(), switch.clone(), sth.clone(), TourThreatReviewModel {
+        relevance: ThreatRelevance::Direct,
         explanation: "Len tak".to_string(),
     }).await.unwrap();
 

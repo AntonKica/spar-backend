@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize)]
-pub struct SpecificThreatCreateModel {
+pub struct ThreatCreateModel {
     pub name: String,
     pub description: String,
     pub confidentiality_impaired: bool,
@@ -9,7 +9,7 @@ pub struct SpecificThreatCreateModel {
     pub availability_impaired: bool,
 }
 #[derive(Serialize)]
-pub struct SpecificThreatModel {
+pub struct ThreatModel {
     pub code: String,
     pub name: String,
     pub description: String,

@@ -5,23 +5,23 @@ use crate::int_enum;
 use strum_macros::EnumIter;
 
 int_enum! {
-    ElementaryThreatRelevance {
+    ThreatRelevance {
         Irrelevant,
         Indirect,
         Direct
     }
 }
 
-impl EnumMeta for ElementaryThreatRelevance {
+impl EnumMeta for ThreatRelevance {
     fn code(&self) -> i32 {
         *self as i32
     }
 
     fn display_name(&self) -> &'static str {
         match self {
-            ElementaryThreatRelevance::Irrelevant => "irelevantná",
-            ElementaryThreatRelevance::Indirect => "nepriamo",
-            ElementaryThreatRelevance::Direct => "priamo",
+            ThreatRelevance::Irrelevant => "irelevantná",
+            ThreatRelevance::Indirect => "nepriamo",
+            ThreatRelevance::Direct => "priamo",
         }
     }
 }

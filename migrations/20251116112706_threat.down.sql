@@ -1,2 +1,2 @@
-DROP TABLE elementary_threat;
+DROP TABLE threat;
 DROP TABLE specific_threat;

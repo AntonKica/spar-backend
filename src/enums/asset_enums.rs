@@ -2,14 +2,14 @@ use crate::enums::EnumMeta;
 use crate::int_enum;
 use strum_macros::EnumIter;
 
-#[repr(i32)]
-#[derive(Debug, Copy, Clone, EnumIter)]
-pub enum AssetType {
-    BusinessProcess,
-    ItSystem,
-    ItApplication,
-    CommunicationsChannel,
-    Room,
+int_enum! {
+    AssetType {
+        BusinessProcess,
+        ItSystem,
+        ItApplication,
+        CommunicationsChannel,
+        Room,
+    }
 }
 
 impl EnumMeta for AssetType {

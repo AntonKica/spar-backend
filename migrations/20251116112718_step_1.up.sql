@@ -21,26 +21,24 @@ CREATE TABLE security_measure
 
 CREATE TABLE asset_sm_list
 (
-    asset_code            CHAR(10) NOT NULL REFERENCES asset (code),
-    sm_code CHAR(10) NOT NULL REFERENCES security_measure (code)
+    asset_code CHAR(10) NOT NULL REFERENCES asset (code),
+    sm_code    CHAR(10) NOT NULL REFERENCES security_measure (code)
 );
 
 CREATE TABLE fulfilled_threat
 (
-    code                   CHAR(10) NOT NULL PRIMARY KEY,
-    et_code CHAR(4)  NULL REFERENCES elementary_threat (code),
-    st_code   CHAR(10) NULL REFERENCES specific_threat (code),
-    time_cost              INTEGER  NULL,
-    time_cost_unit         INTEGER  NULL,
-    monetary_cost          INTEGER  NULL,
-    description            TEXT     NOT NULL,
-    CHECK (et_code IS NOT NULL OR st_code IS NOT NULL)
+    code           CHAR(10)    NOT NULL PRIMARY KEY,
+    threat_code    VARCHAR(10) NULL REFERENCES threat (code),
+    time_cost      INTEGER     NULL,
+    time_cost_unit INTEGER     NULL,
+    monetary_cost  INTEGER     NULL,
+    description    TEXT        NOT NULL
 );
 
 CREATE TABLE asset_ft_list
 (
-    asset_code            CHAR(10) NOT NULL REFERENCES asset (code),
-    ft_code CHAR(10) NOT NULL REFERENCES fulfilled_threat (code)
+    asset_code CHAR(10) NOT NULL REFERENCES asset (code),
+    ft_code    CHAR(10) NOT NULL REFERENCES fulfilled_threat (code)
 );
 
 CREATE TABLE risk_analysis_process

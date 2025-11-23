@@ -8,7 +8,7 @@ use spar_backend::route::{GeneralRoute};
 use spar_backend::route::asset_route::AssetRoute;
 use spar_backend::route::enum_route::EnumRoute;
 use spar_backend::route::risk_analysis_process_route::RiskAnalysisProcessRoute;
-use spar_backend::route::specific_threat_route::SpecificThreatRoute;
+use spar_backend::route::threat_route::SpecificThreatRoute;
 use spar_backend::route::step_2_threat_identification_route::Step2ThreatIdenfiticationRoute;
 
 #[actix_web::main]

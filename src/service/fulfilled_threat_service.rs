@@ -13,10 +13,9 @@ impl FulfilledThreatService {
         let code = next_code_for("fulfilled_threat", "FTH", 10, tx).await?;
 
         sqlx::query_as!(FulfilledThreatCreateModel,
-        r#"INSERT INTO fulfilled_threat VALUES ($1,$2,$3,$4,$5,$6,$7)"#,
+        r#"INSERT INTO fulfilled_threat VALUES ($1,$2,$3,$4,$5,$6)"#,
             code,
-            create_model.et_code,
-            create_model.st_code,
+            create_model.threat_code,
             create_model.time_cost,
             create_model.time_cost_unit.map(|tcu| tcu as i32),
             create_model.monetary_cost,
@@ -28,90 +27,48 @@ impl FulfilledThreatService {
     }
 
     pub async fn list_detail(db: &Pool<Postgres>) -> ApiResult<Vec<FulfilledThreatDetailModel>> {
-        let res_elementary = sqlx::query_as!(FulfilledThreatDetailModel,
+        let res = sqlx::query_as!(FulfilledThreatDetailModel,
             r#"
 SELECT ft.code,
-       ft.et_code,
-       ft.st_code,
-       et.name as threat_name,
+       threat.code as threat_code,
+       threat.name as threat_name,
        ft.time_cost,
        ft.time_cost_unit,
        ft.monetary_cost,
        ft.description,
-       et.confidentiality_impaired,
-       et.integrity_impaired,
-       et.availability_impaired
+       threat.confidentiality_impaired,
+       threat.integrity_impaired,
+       threat.availability_impaired
 FROM fulfilled_threat AS ft
-         INNER JOIN elementary_threat et ON ft.et_code = et.code
+         INNER JOIN threat ON ft.threat_code = threat.code
 "#)
             .fetch_all(db)
             .await?;
 
-        let res_specific = sqlx::query_as!(FulfilledThreatDetailModel,
-            r#"
-SELECT ft.code,
-       ft.et_code,
-       ft.st_code,
-       st.name as threat_name,
-       ft.time_cost,
-       ft.time_cost_unit,
-       ft.monetary_cost,
-       ft.description,
-       st.confidentiality_impaired,
-       st.integrity_impaired,
-       st.availability_impaired
-FROM fulfilled_threat AS ft
-         INNER JOIN specific_threat st ON ft.et_code = st.code
-"#)
-            .fetch_all(db)
-            .await?;
-
-        Ok([res_elementary, res_specific].concat())
+        Ok(res)
     }
 
     pub async fn list_detail_by_asset_code(db: &Pool<Postgres>, asset_code: String) -> ApiResult<Vec<FulfilledThreatDetailModel>> {
-        let res_elementary = sqlx::query_as!(FulfilledThreatDetailModel,
+        let res = sqlx::query_as!(FulfilledThreatDetailModel,
             r#"
 SELECT ft.code,
-       ft.et_code,
-       ft.st_code,
-       et.name as threat_name,
+       threat.code as threat_code,
+       threat.name as threat_name,
        ft.time_cost,
        ft.time_cost_unit,
        ft.monetary_cost,
        ft.description,
-       et.confidentiality_impaired,
-       et.integrity_impaired,
-       et.availability_impaired
+       threat.confidentiality_impaired,
+       threat.integrity_impaired,
+       threat.availability_impaired
 FROM fulfilled_threat ft
-         INNER JOIN elementary_threat et ON ft.et_code = et.code
+         INNER JOIN threat ON threat.code = ft.threat_code
          INNER JOIN asset_ft_list aft ON aft.ft_code = ft.code
          WHERE aft.asset_code = $1
 "#,asset_code.clone())
             .fetch_all(db)
             .await?;
 
-        let res_specific = sqlx::query_as!(FulfilledThreatDetailModel,
-            r#"
-SELECT ft.code,
-       ft.et_code,
-       ft.st_code,
-       st.name as threat_name,
-       ft.time_cost,
-       ft.time_cost_unit,
-       ft.monetary_cost,
-       ft.description,
-       st.confidentiality_impaired,
-       st.integrity_impaired,
-       st.availability_impaired
-FROM fulfilled_threat AS ft
-         INNER JOIN specific_threat st ON ft.st_code = st.code
-         INNER JOIN asset_ft_list aft ON aft.ft_code = ft.code
-         WHERE aft.asset_code = $1
-"#,asset_code.clone())
-            .fetch_all(db)
-            .await?;
-
-        Ok([res_elementary, res_specific].concat())
+        Ok(res)
     }
 }
