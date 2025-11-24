@@ -1,6 +1,5 @@
 use crate::enums::EnumMeta;
 use crate::int_enum;
-use strum_macros::EnumIter;
 
 int_enum! {
     AssetType {

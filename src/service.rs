@@ -9,6 +9,7 @@ pub mod security_measure_service;
 pub mod threat_service;
 pub mod risk_analysis_process_service;
 pub mod step_2_threat_idenfication_service;
+pub mod step_3_risk_classification_service;
 
 // pub mod risk_analysis_process_service;
 // pub mod risk_classification_service;

@@ -18,6 +18,7 @@ use spar_backend::service::threat_service::ThreatService;
 use spar_backend::service::step_2_threat_idenfication_service::Step2ThreatIdentificationService;
 
 async fn clear_database(tx: &mut PgConnection) {
+    sqlx::query(r#"DELETE FROM risk_classification"#).execute(&mut *tx).await.unwrap();
     sqlx::query(r#"DELETE FROM tour_threat_list"#).execute(&mut *tx).await.unwrap();
     sqlx::query(r#"DELETE FROM rap_tour_list"#).execute(&mut *tx).await.unwrap();
     sqlx::query(r#"DELETE FROM risk_analysis_process"#).execute(&mut *tx).await.unwrap();
@@ -146,6 +147,9 @@ async fn create_assets() {
         relevance: ThreatRelevance::Direct,
         explanation: "Len tak".to_string(),
     }).await.unwrap();
+
+
+    RiskAnalysisProcessService::step_complete(&mut *tx, rap.clone(), ProcessStep::Step2RelevantThreatIdentification).await.unwrap();
 
 
     tx.commit().await.unwrap();

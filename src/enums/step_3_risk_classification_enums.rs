@@ -1,0 +1,77 @@
+use crate::enums::EnumMeta;
+use crate::enums::fulfilled_threat_enums::TimeCostUnit;
+use crate::int_enum;
+
+use strum_macros::EnumIter;
+
+int_enum! {
+    ThreatProbability {
+        Rarely,
+        Medium,
+        Often,
+        VeryOften,
+    }
+}
+
+impl EnumMeta for ThreatProbability {
+    fn code(&self) -> i32 {
+        *self as i32
+    }
+
+    fn display_name(&self) -> &'static str {
+        match self {
+            ThreatProbability::Rarely => "zriedkavo",
+            ThreatProbability::Medium => "stredne",
+            ThreatProbability::Often => "často",
+            ThreatProbability::VeryOften => "veľmi často",
+        }
+    }
+}
+
+int_enum! {
+    ThreatImpact {
+        Negligible,
+        Limited,
+        Significant,
+        LifeThreatening,
+    }
+}
+
+impl EnumMeta for ThreatImpact {
+    fn code(&self) -> i32 {
+        *self as i32
+    }
+
+    fn display_name(&self) -> &'static str {
+        match self {
+            ThreatImpact::Negligible => "zanedbateľný",
+            ThreatImpact::Limited => "obmedzený",
+            ThreatImpact::Significant => "významný",
+            ThreatImpact::LifeThreatening => "život ohrozujúci",
+        }
+    }
+}
+
+int_enum! {
+    ThreatRisk {
+        Low,
+        Medium,
+        High,
+        VeryHigh,
+    }
+}
+
+impl EnumMeta for ThreatRisk {
+    fn code(&self) -> i32 {
+        *self as i32
+    }
+
+    fn display_name(&self) -> &'static str {
+        match self {
+            ThreatRisk::Low => "nízke",
+            ThreatRisk::Medium => "stredné",
+            ThreatRisk::High => "vysoké",
+            ThreatRisk::VeryHigh => "veľmi vysoké",
+        }
+    }
+}

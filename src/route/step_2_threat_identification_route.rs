@@ -44,7 +44,7 @@ async fn threat_identification_list(
     }
 }
 
-#[post("/{rap_code}/{tour_code}/review/{et_code}")]
+#[post("/{rap_code}/{tour_code}/review/{threat_code}")]
 async fn threat_review(
     data: web::Data<AppState>,
     path: Path<(String, String, String)>,

@@ -7,6 +7,7 @@ use crate::model::risk_analysis_process_models::{RiskAnalysisProcessDetailModel,
 use crate::model::RiskAnalysisProcessCreateModel;
 use crate::service::{next_code_for, ApiError, ApiResult};
 use crate::service::asset_service::AssetService;
+use crate::service::step_3_risk_classification_service::Step3RiskClassificationService;
 
 pub struct RiskAnalysisProcessService;
 
@@ -111,6 +112,17 @@ impl RiskAnalysisProcessService {
             .bind(next_step)
             .execute(&mut *tx)
             .await?;
+        
+        match next_step {
+            ProcessStep::Step1SelectTour => {}
+            ProcessStep::Step2RelevantThreatIdentification => {}
+            ProcessStep::Step3RiskClassification => {
+                Step3RiskClassificationService::initialize_step(&mut *tx, rap_code.clone()).await?;
+            }
+            ProcessStep::Step4RiskTreatment => {}
+            ProcessStep::Step5RiskTreatmentCheck => {}
+            ProcessStep::Step6Finished => {}
+        }
 
 
         Ok(())

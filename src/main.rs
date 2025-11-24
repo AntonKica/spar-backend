@@ -10,6 +10,7 @@ use spar_backend::route::enum_route::EnumRoute;
 use spar_backend::route::risk_analysis_process_route::RiskAnalysisProcessRoute;
 use spar_backend::route::threat_route::SpecificThreatRoute;
 use spar_backend::route::step_2_threat_identification_route::Step2ThreatIdenfiticationRoute;
+use spar_backend::route::step_3_risk_classification_route::Step3RiskClassificationRoute;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -29,6 +30,7 @@ async fn main() -> std::io::Result<()> {
                     .service(SpecificThreatRoute::routes())
                     .service(RiskAnalysisProcessRoute::routes())
                     .service(Step2ThreatIdenfiticationRoute::routes())
+                    .service(Step3RiskClassificationRoute::routes())
             )
     })
         .bind((config.server_host, config.server_port))?

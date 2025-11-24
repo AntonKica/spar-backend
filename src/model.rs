@@ -6,6 +6,7 @@ pub mod security_measure_models;
 pub mod threat_models;
 pub mod risk_analysis_process_models;
 pub mod step_2_threat_identification_models;
+pub mod step_3_risk_classification_models;
 
 use serde::{Deserialize};
 
