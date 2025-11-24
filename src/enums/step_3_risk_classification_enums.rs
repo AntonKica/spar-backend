@@ -3,6 +3,7 @@ use crate::enums::fulfilled_threat_enums::TimeCostUnit;
 use crate::int_enum;
 
 use strum_macros::EnumIter;
+use crate::enums::risk_classification_enums::{FrequencyOfOccurrence, PotentialDamage};
 
 int_enum! {
     ThreatProbability {
@@ -28,12 +29,36 @@ impl EnumMeta for ThreatProbability {
     }
 }
 
+impl From<i32> for ThreatProbability {
+    fn from(value: i32) -> Self {
+        match value {
+            0 => Self::Rarely,
+            1 => Self::Medium,
+            2 => Self::Often,
+            3 => Self::VeryOften,
+            _ => Self::Rarely
+        }
+    }
+}
+
 int_enum! {
     ThreatImpact {
         Negligible,
         Limited,
         Significant,
         LifeThreatening,
+    }
+}
+
+impl From<i32> for ThreatImpact {
+    fn from(value: i32) -> Self {
+        match value {
+            0 => Self::Negligible,
+            1 => Self::Limited,
+            2 => Self::Significant,
+            3 => Self::LifeThreatening,
+            _ => Self::Negligible
+        }
     }
 }
 

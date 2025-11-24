@@ -9,6 +9,11 @@ pub struct TourThreatReviewModel {
 }
 
 #[derive(Serialize)]
+pub struct TourModel {
+    pub code: String,
+    pub name: String,
+}
+#[derive(Serialize)]
 pub struct TourThreatModel {
     pub threat_code: String,
     pub threat_name: String,

@@ -1,3 +1,4 @@
+use crate::model::step_2_threat_identification_models::TourModel;
 use crate::model::step_2_threat_identification_models::{TourThreatModel, TourThreatReviewModel, TourThreatSummaryModel};
 use crate::enums::step_2_threat_identification_enums::ThreatRelevance;
 use crate::model::step_2_threat_identification_models::{TourThreatIdentificationModel};
@@ -31,34 +32,12 @@ impl Step2ThreatIdentificationService {
         )
     }
 
-    pub async fn list_tour_threat_identification(
+    pub async fn threat_list(
         db: &Pool<Postgres>,
         rap_code: String,
-    ) -> ApiResult<TourThreatSummaryModel> {
-        let tour_list: Vec<(String, String)> = sqlx::query_as(r#"
-            SELECT
-                DISTINCT ON(tour_code)
-                asset.code as tour_code,
-                asset.name as tour_name
-            FROM tour_threat_list
-            INNER JOIN threat ON threat.code = tour_threat_list.threat_code
-            INNER JOIN asset on asset.code = tour_threat_list.tour_code
-            WHERE rap_code = $1
-        "#)
-            .bind(rap_code.clone())
-            .fetch_all(db)
-            .await?;
-
-        let mut tour_threat_list: Vec<TourThreatIdentificationModel> = Vec::new();
-        for (tour_code, tour_name) in tour_list {
-            tour_threat_list.push( TourThreatIdentificationModel{
-                tour_code: tour_code.clone(),
-                tour_name: tour_name.clone(),
-                threat_list: Step2ThreatIdentificationService::list_threat_identification(&db, rap_code.clone(), tour_code.clone()).await?,
-            })
-        }
-
-        let threat_list = sqlx::query_as!(ThreatModel, r#"
+    ) -> ApiResult<Vec<ThreatModel>> {
+        Ok(
+            sqlx::query_as!(ThreatModel, r#"
             SELECT DISTINCT ON(code)
                 threat.code,
                 threat.name,
@@ -69,11 +48,46 @@ impl Step2ThreatIdentificationService {
             FROM tour_threat_list
             INNER JOIN threat ON threat.code = tour_threat_list.threat_code
             WHERE rap_code = $1"#, rap_code.clone())
+                .fetch_all(db)
+                .await?
+        )
+    }
+
+    pub async fn tour_list(
+        db: &Pool<Postgres>,
+        rap_code: String,
+    ) -> ApiResult<Vec<TourModel>> {
+        Ok(
+        sqlx::query_as!(TourModel, r#"
+            SELECT
+                DISTINCT ON(asset.code)
+                asset.code,
+                asset.name
+            FROM tour_threat_list
+            INNER JOIN threat ON threat.code = tour_threat_list.threat_code
+            INNER JOIN asset on asset.code = tour_threat_list.tour_code
+            WHERE rap_code = $1
+        "#, rap_code)
             .fetch_all(db)
-            .await?;
+            .await?
+        )
+    }
+
+    pub async fn list_tour_threat_identification(
+        db: &Pool<Postgres>,
+        rap_code: String,
+    ) -> ApiResult<TourThreatSummaryModel> {
+        let mut tour_threat_list: Vec<TourThreatIdentificationModel> = Vec::new();
+        for tour in Self::tour_list(&db, rap_code.clone()).await? {
+            tour_threat_list.push( TourThreatIdentificationModel{
+                tour_code: tour.code.clone(),
+                tour_name: tour.name.clone(),
+                threat_list: Self::list_threat_identification(&db, rap_code.clone(), tour.code.clone()).await?,
+            })
+        }
 
         Ok(TourThreatSummaryModel{
-            threat_list,
+            threat_list: Self::threat_list(&db, rap_code).await?,
             tour_threat_list,
         })
     }

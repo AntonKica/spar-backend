@@ -12,8 +12,22 @@ pub struct Step3RiskClassificationRoute {}
 impl GeneralRoute for Step3RiskClassificationRoute {
     fn routes() -> Scope {
         web::scope("/step-3-risk-classification")
+            .service(risk_classification_summary)
             .service(tour_risk_classification_list)
             .service(threat_classify)
+    }
+}
+
+#[get("/{rap_code}")]
+async fn risk_classification_summary(
+    data: web::Data<AppState>,
+    path: Path<String>,
+) -> impl Responder {
+    let rap_code =  path.into_inner();
+
+    match Step3RiskClassificationService::risk_classification_summary(&data.db, rap_code).await {
+        Ok(res) => HttpResponse::Ok().json(ApiResponse::new(res)),
+        Err(e) => e.error_response()
     }
 }
 
