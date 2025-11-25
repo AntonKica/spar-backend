@@ -4,6 +4,7 @@ use actix_web::web::scope;
 use actix_web::{App, HttpServer};
 use spar_backend::configuration::{AppConfig, AppState};
 use spar_backend::create_connection;
+use spar_backend::enums::risk_analysis_process_enums::ProcessStep::Step4RiskTreatment;
 use spar_backend::route::{GeneralRoute};
 use spar_backend::route::asset_route::AssetRoute;
 use spar_backend::route::enum_route::EnumRoute;
@@ -11,6 +12,7 @@ use spar_backend::route::risk_analysis_process_route::RiskAnalysisProcessRoute;
 use spar_backend::route::threat_route::SpecificThreatRoute;
 use spar_backend::route::step_2_threat_identification_route::Step2ThreatIdenfiticationRoute;
 use spar_backend::route::step_3_risk_classification_route::Step3RiskClassificationRoute;
+use spar_backend::route::step_4_risk_treatment_route::Step4RiskTreatmentRoute;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -31,6 +33,7 @@ async fn main() -> std::io::Result<()> {
                     .service(RiskAnalysisProcessRoute::routes())
                     .service(Step2ThreatIdenfiticationRoute::routes())
                     .service(Step3RiskClassificationRoute::routes())
+                    .service(Step4RiskTreatmentRoute::routes())
             )
     })
         .bind((config.server_host, config.server_port))?

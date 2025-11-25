@@ -4,6 +4,7 @@ pub mod threat_route;
 pub mod risk_analysis_process_route;
 pub mod step_2_threat_identification_route;
 pub mod step_3_risk_classification_route;
+pub mod step_4_risk_treatment_route;
 
 pub trait GeneralRoute {
     fn routes() -> actix_web::Scope;

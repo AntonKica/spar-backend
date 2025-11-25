@@ -6,9 +6,11 @@ use spar_backend::enums::fulfilled_threat_enums::TimeCostUnit;
 use spar_backend::enums::asset_enums::ProtectionNeeds;
 use spar_backend::enums::risk_analysis_process_enums::ProcessStep;
 use spar_backend::enums::step_2_threat_identification_enums::ThreatRelevance;
+use spar_backend::enums::step_3_risk_classification_enums::{ThreatImpact, ThreatProbability};
 use spar_backend::model::asset_model::AssetCreateModel; use spar_backend::model::fulfilled_threat_models::FulfilledThreatCreateModel; use spar_backend::model::security_measure_models::SecurityMeasureCreateModel;
 use spar_backend::model::threat_models::ThreatCreateModel;
 use spar_backend::model::step_2_threat_identification_models::{TourThreatReviewModel};
+use spar_backend::model::step_3_risk_classification_models::TourRiskClassificationClassifyModel;
 use spar_backend::service::asset_service::AssetService;
 use spar_backend::service::fulfilled_threat_service::FulfilledThreatService;
 use spar_backend::service::GeneralService;
@@ -16,6 +18,7 @@ use spar_backend::service::risk_analysis_process_service::RiskAnalysisProcessSer
 use spar_backend::service::security_measure_service::SecurityMeasureService;
 use spar_backend::service::threat_service::ThreatService;
 use spar_backend::service::step_2_threat_idenfication_service::Step2ThreatIdentificationService;
+use spar_backend::service::step_3_risk_classification_service::Step3RiskClassificationService;
 
 async fn clear_database(tx: &mut PgConnection) {
     sqlx::query(r#"DELETE FROM risk_classification"#).execute(&mut *tx).await.unwrap();
@@ -148,9 +151,40 @@ async fn create_assets() {
         explanation: "Len tak".to_string(),
     }).await.unwrap();
 
-
     RiskAnalysisProcessService::step_complete(&mut *tx, rap.clone(), ProcessStep::Step2RelevantThreatIdentification).await.unwrap();
 
+
+    Step3RiskClassificationService::threat_classify(&mut *tx, rap.clone(), bp.clone(), "G-01".to_owned(), TourRiskClassificationClassifyModel{
+        probability: ThreatProbability::Medium,
+        impact: ThreatImpact::Significant,
+        evaluation: "ev bp g01".to_string(),
+    }).await.unwrap();
+
+    Step3RiskClassificationService::threat_classify(&mut *tx, rap.clone(), bp.clone(), "G-02".to_owned(), TourRiskClassificationClassifyModel{
+        probability: ThreatProbability::VeryOften,
+        impact: ThreatImpact::Limited,
+        evaluation: "ev bp g02".to_string(),
+    }).await.unwrap();
+
+    Step3RiskClassificationService::threat_classify(&mut *tx, rap.clone(), bp.clone(), sth.clone(), TourRiskClassificationClassifyModel{
+        probability: ThreatProbability::VeryOften,
+        impact: ThreatImpact::LifeThreatening,
+        evaluation: "ev bp thr".to_string(),
+    }).await.unwrap();
+
+    Step3RiskClassificationService::threat_classify(&mut *tx, rap.clone(), switch.clone(), "G-01".to_owned(), TourRiskClassificationClassifyModel{
+        probability: ThreatProbability::Medium,
+        impact: ThreatImpact::Limited,
+        evaluation: "ev bp g01".to_string(),
+    }).await.unwrap();
+
+    Step3RiskClassificationService::threat_classify(&mut *tx, rap.clone(), switch.clone(), sth.clone(), TourRiskClassificationClassifyModel{
+        probability: ThreatProbability::Often,
+        impact: ThreatImpact::LifeThreatening,
+        evaluation: "ev bp thr".to_string(),
+    }).await.unwrap();
+
+    RiskAnalysisProcessService::step_complete(&mut *tx, rap.clone(), ProcessStep::Step3RiskClassification).await.unwrap();
 
     tx.commit().await.unwrap();
 }
