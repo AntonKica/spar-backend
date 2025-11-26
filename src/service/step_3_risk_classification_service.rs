@@ -1,12 +1,7 @@
-use crate::model::step_2_threat_identification_models::{TourThreatIdentificationModel, TourThreatModel, TourThreatReviewModel, TourThreatSummaryModel};
 use crate::service::ApiResult;
 use sqlx::{PgConnection, Pool, Postgres};
-use sqlx::postgres::PgRow;
-use crate::enums::risk_analysis_process_enums::ProcessStep::Step2RelevantThreatIdentification;
-use crate::enums::step_2_threat_identification_enums::ThreatRelevance;
 use crate::enums::step_3_risk_classification_enums::{ThreatImpact, ThreatProbability, ThreatRisk};
 use crate::model::step_3_risk_classification_models::{RiskClassificationSummaryModel, RiskSummaryModel, TourRiskClassificationClassifyModel, TourRiskClassificationModel, TourRiskClassificationSummaryModel};
-use crate::model::threat_models::ThreatModel;
 use crate::service::step_2_threat_idenfication_service::Step2ThreatIdentificationService;
 
 pub struct Step3RiskClassificationService;
@@ -84,7 +79,7 @@ WHERE rap_code = $1
     }
 
 
-    fn risk_matrix(probability_val: i32, impact_val: i32) -> ThreatRisk {
+    pub fn risk_matrix(probability_val: i32, impact_val: i32) -> ThreatRisk {
         let probability: ThreatProbability = ThreatProbability::from(probability_val);
         let impact = ThreatImpact::from(impact_val);
 

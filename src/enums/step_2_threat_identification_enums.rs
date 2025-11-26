@@ -1,8 +1,5 @@
 use crate::enums::EnumMeta;
-use crate::enums::fulfilled_threat_enums::TimeCostUnit;
 use crate::int_enum;
-
-use strum_macros::EnumIter;
 
 int_enum! {
     ThreatRelevance {

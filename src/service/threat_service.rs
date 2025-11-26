@@ -1,7 +1,7 @@
 use log::error;
 use sqlx::{PgConnection, Pool, Postgres};
 use crate::model::threat_models::{ThreatCreateModel, ThreatModel};
-use crate::service::{next_code_for, ApiError, ApiResult, GeneralService};
+use crate::service::{next_code_for, next_code_like, ApiError, ApiResult, GeneralService};
 
 pub struct ThreatService;
 
@@ -11,28 +11,7 @@ impl GeneralService<ThreatModel, ThreatModel, ThreatCreateModel> for ThreatServi
     const CODE_DIGITS: usize = 10;
 
     async fn create(tx: &mut PgConnection, create_model: ThreatCreateModel) -> ApiResult<String> {
-        let top_code: Option<String> =
-            sqlx::query_scalar(r#"SELECT code FROM threat WHERE code LIKE 'THR-%' ORDER BY code DESC LIMIT 1"#)
-            .fetch_optional(&mut *tx)
-                .await?;
-        
-        let next_number = match top_code {
-            Some(code) => {
-                code.strip_prefix(Self::CODE_PREFIX)
-                    .ok_or_else(|| {
-                        error!("Invalid code format {code}");
-                        ApiError::Internal
-                    })?
-                    .parse::<usize>()
-                    .map_err(|e| {
-                        error!("Invalid code number {e}");
-                        ApiError::Internal
-                    })?
-                    + 1
-            }
-            None => 1
-        };
-        let code = format!("{prefix}{next_number:0number_length$}", prefix=Self::CODE_PREFIX, number_length=Self::CODE_DIGITS - Self::CODE_PREFIX.len());
+        let code: String = next_code_like(Self::TABLE_NAME, Self::CODE_PREFIX, Self::CODE_DIGITS, &mut *tx).await?;
 
         sqlx::query(r#"INSERT INTO threat VALUES ($1,$2,$3,$4,$5,$6)"#)
             .bind(code.clone())

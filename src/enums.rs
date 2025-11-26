@@ -7,6 +7,7 @@ pub mod fulfilled_threat_enums;
 pub mod risk_analysis_process_enums;
 pub mod step_2_threat_identification_enums;
 pub mod step_3_risk_classification_enums;
+pub mod step_4_risk_treatment_enums;
 
 #[macro_export]
 macro_rules! int_enum {

@@ -131,6 +131,38 @@ pub async fn next_code_for_db(
 
     Ok(format!("{prefix}{next_number:0number_length$}"))
 }
+
+pub async fn next_code_like(
+    table: &str,
+    acronym: &str,
+    code_length: usize,
+    tx: &mut PgConnection
+) -> ApiResult<String> {
+    // TOTAL LENGTH - STRING - '-'
+    let prefix = format!("{acronym}-");
+    let number_length = code_length - prefix.len();
+
+    let query = format!("SELECT code FROM {table} WHERE code like '{prefix}%' ORDER BY code DESC LIMIT 1");
+    let top_code: Option<String> = sqlx::query_scalar(&query).fetch_optional(tx).await?;
+    let next_number = match top_code {
+        Some(code) => {
+            code.strip_prefix(&prefix)
+                .ok_or_else(|| {
+                    error!("Invalid code format {}", code.to_owned());
+                    ApiError::Internal
+                })?
+                .parse::<usize>()
+                .map_err(|e| {
+                    error!("Invalid code number {e}");
+                    ApiError::Internal
+                })?
+                + 1
+        }
+        None => 1
+    };
+
+    Ok(format!("{prefix}{next_number:0number_length$}"))
+}
 pub trait GeneralService<T, TT, U> {
     const TABLE_NAME: &'static str;
     const CODE_PREFIX: &'static str;
