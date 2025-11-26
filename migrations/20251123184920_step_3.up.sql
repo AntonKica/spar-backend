@@ -5,5 +5,6 @@ CREATE TABLE risk_classification
     threat_code VARCHAR(10) NOT NULL REFERENCES threat (code),
     probability INTEGER  NOT NULL,
     impact      INTEGER  NOT NULL,
-    evaluation  TEXT     NOT NULL
+    evaluation  TEXT     NOT NULL,
+    PRIMARY KEY (rap_code, tour_code, threat_code)
 );
