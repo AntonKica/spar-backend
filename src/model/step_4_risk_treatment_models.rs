@@ -62,3 +62,21 @@ pub struct RiskTransferModel {
     pub checklist: Vec<String>,
     pub explanation: String,
 }
+
+#[derive(Deserialize)]
+pub struct RiskReductionCreateModel {
+    pub name: String,
+    pub confidentiality_protected: bool,
+    pub integrity_protected: bool,
+    pub availability_protected: bool,
+    pub explanation: String,
+}
+#[derive(Serialize)]
+pub struct RiskReductionModel {
+    pub code: String,
+    pub name: String,
+    pub confidentiality_protected: bool,
+    pub integrity_protected: bool,
+    pub availability_protected: bool,
+    pub explanation: String,
+}
