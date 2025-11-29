@@ -6,7 +6,7 @@ use crate::service::{next_code_for, next_code_like, ApiError, ApiResult, General
 pub struct ThreatService;
 
 impl GeneralService<ThreatModel, ThreatModel, ThreatCreateModel> for ThreatService {
-    const TABLE_NAME: &'static str = "specific_threat";
+    const TABLE_NAME: &'static str = "threat";
     const CODE_PREFIX: &'static str = "THR-";
     const CODE_DIGITS: usize = 10;
 
