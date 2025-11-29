@@ -64,7 +64,7 @@ impl Step4RiskTreatmentService {
                     confidentiality_impaired: rc.confidentiality_impaired,
                     integrity_impaired: rc.integrity_impaired,
                     availability_impaired: rc.availability_impaired,
-                    risk: Step3RiskClassificationService::risk_matrix(rc.probability, rc.impact),
+                    risk: Step3RiskClassificationService::risk_matrix(rc.probability, rc.impact) as i32,
                     treatment_type: rc.treatment_type
                 }}
             ).collect()
@@ -72,15 +72,22 @@ impl Step4RiskTreatmentService {
     }
 
 
-    pub async fn risk_acceptance_by_code(
+    pub async fn get_risk_acceptance(
         db: &Pool<Postgres>,
-        acp_code: String,
-    ) -> ApiResult<RiskAcceptanceModel> {
+        rap_code: String,
+        tour_code: String,
+        threat_code: String,
+    ) -> ApiResult<Option<RiskAcceptanceModel>> {
         Ok(
-            sqlx::query_as!(RiskAcceptanceModel, r#" SELECT * FROM risk_acceptance WHERE code = $1"#, acp_code.clone())
+            sqlx::query_as!(RiskAcceptanceModel, r#"
+            SELECT * FROM risk_acceptance
+            WHERE EXISTS(
+                SELECT *
+                FROM risk_treatment
+                WHERE rap_code = $1 AND tour_code = $2 AND threat_code = $3 AND risk_treatment.treatment_code = risk_acceptance.code
+            )"#, rap_code, tour_code, threat_code)
                 .fetch_optional(db)
                 .await?
-                .ok_or_else(|| ApiError::NotFound(format!("Risk acceptance {} not found", acp_code)))?
         )
     }
 
@@ -88,15 +95,22 @@ impl Step4RiskTreatmentService {
         Ok(sqlx::query_as!(RiskAcceptanceModel, r#" SELECT * FROM risk_acceptance"#).fetch_all(db).await?)
     }
 
-    pub async fn risk_avoidance_by_code(
+    pub async fn get_risk_avoidance(
         db: &Pool<Postgres>,
-        avd_code: String,
-    ) -> ApiResult<RiskAvoidanceModel> {
+        rap_code: String,
+        tour_code: String,
+        threat_code: String,
+    ) -> ApiResult<Option<RiskAvoidanceModel>> {
         Ok(
-            sqlx::query_as!(RiskAvoidanceModel, r#" SELECT * FROM risk_avoidance WHERE code = $1"#, avd_code.clone())
+            sqlx::query_as!(RiskAvoidanceModel, r#"
+            SELECT * FROM risk_avoidance
+            WHERE EXISTS(
+                SELECT *
+                FROM risk_treatment
+                WHERE rap_code = $1 AND tour_code = $2 AND threat_code = $3 AND risk_treatment.treatment_code = risk_avoidance.code
+            )"#, rap_code, tour_code, threat_code)
                 .fetch_optional(db)
                 .await?
-                .ok_or_else(|| ApiError::NotFound(format!("Risk avoidance {} not found", avd_code)))?
         )
     }
 
@@ -104,15 +118,22 @@ impl Step4RiskTreatmentService {
         Ok(sqlx::query_as!(RiskAvoidanceModel, r#" SELECT * FROM risk_avoidance"#).fetch_all(db).await?)
     }
 
-    pub async fn risk_transfer_by_code(
+    pub async fn get_risk_transfer(
         db: &Pool<Postgres>,
-        trf_code: String,
-    ) -> ApiResult<RiskTransferModel> {
+        rap_code: String,
+        tour_code: String,
+        threat_code: String,
+    ) -> ApiResult<Option<RiskTransferModel>> {
         Ok(
-            sqlx::query_as!(RiskTransferModel, r#" SELECT * FROM risk_transfer WHERE code = $1"#, trf_code.clone())
+            sqlx::query_as!(RiskTransferModel, r#"
+            SELECT * FROM risk_transfer
+            WHERE EXISTS(
+                SELECT *
+                FROM risk_treatment
+                WHERE rap_code = $1 AND tour_code = $2 AND threat_code = $3 AND risk_treatment.treatment_code = risk_transfer.code
+            )"#, rap_code, tour_code, threat_code)
                 .fetch_optional(db)
                 .await?
-                .ok_or_else(|| ApiError::NotFound(format!("Risk avoidance {} not found", trf_code)))?
         )
     }
 

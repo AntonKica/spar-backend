@@ -17,15 +17,15 @@ impl GeneralRoute for Step4RiskTreatmentRoute {
             .service(risk_classification)
             .service(risk_treatment)
             .service(list_acceptance)
-            .service(risk_acceptance_by_code)
+            .service(get_risk_acceptance)
             .service(risk_accept)
             .service(risk_accept_with_create)
             .service(list_avoidance)
-            .service(risk_avoidance_by_code)
+            .service(get_risk_avoidance)
             .service(risk_avoid)
             .service(risk_avoid_with_create)
             .service(list_transfer)
-            .service(risk_transfer_by_code)
+            .service(get_risk_transfer)
             .service(risk_transfer)
             .service(risk_transfer_with_create)
     }
@@ -68,11 +68,12 @@ async fn list_acceptance(data: web::Data<AppState>) -> impl Responder {
     }
 }
 
-#[get("/risk-acceptance/{acp_code}")]
-async fn risk_acceptance_by_code(data: web::Data<AppState>, path: Path<String>) -> impl Responder {
-    let acp_code = path.into_inner();
+#[get("/{rap_code}/{tour_code}/{threat_code}/risk-acceptance")]
+async fn get_risk_acceptance(data: web::Data<AppState>, path: Path<(String, String, String)>,
+) -> impl Responder {
+    let (rap_code, tour_code, threat_code) = path.into_inner();
 
-    match Step4RiskTreatmentService::risk_acceptance_by_code(&data.db, acp_code).await {
+    match Step4RiskTreatmentService::get_risk_acceptance(&data.db, rap_code, tour_code, threat_code).await {
         Ok(res) => HttpResponse::Ok().json(ApiResponse::new(res)),
         Err(e) => e.error_response(),
     }
@@ -153,11 +154,12 @@ async fn list_avoidance(data: web::Data<AppState>) -> impl Responder {
     }
 }
 
-#[get("/risk-avoidance/{avd_code}")]
-async fn risk_avoidance_by_code(data: web::Data<AppState>, path: Path<String>) -> impl Responder {
-    let avd_code = path.into_inner();
+#[get("/{rap_code}/{tour_code}/{threat_code}/risk-avoidance")]
+async fn get_risk_avoidance(data: web::Data<AppState>, path: Path<(String, String, String)>,
+) -> impl Responder {
+    let (rap_code, tour_code, threat_code) = path.into_inner();
 
-    match Step4RiskTreatmentService::risk_avoidance_by_code(&data.db, avd_code).await {
+    match Step4RiskTreatmentService::get_risk_avoidance(&data.db, rap_code, tour_code, threat_code).await {
         Ok(res) => HttpResponse::Ok().json(ApiResponse::new(res)),
         Err(e) => e.error_response(),
     }
@@ -232,11 +234,12 @@ async fn list_transfer(data: web::Data<AppState>) -> impl Responder {
     }
 }
 
-#[get("/risk-transfer/{avd_code}")]
-async fn risk_transfer_by_code(data: web::Data<AppState>, path: Path<String>) -> impl Responder {
-    let avd_code = path.into_inner();
+#[get("/{rap_code}/{tour_code}/{threat_code}/risk-transfer")]
+async fn get_risk_transfer(data: web::Data<AppState>, path: Path<(String, String, String)>,
+) -> impl Responder {
+    let (rap_code, tour_code, threat_code) = path.into_inner();
 
-    match Step4RiskTreatmentService::risk_transfer_by_code(&data.db, avd_code).await {
+    match Step4RiskTreatmentService::get_risk_transfer(&data.db, rap_code, tour_code, threat_code).await {
         Ok(res) => HttpResponse::Ok().json(ApiResponse::new(res)),
         Err(e) => e.error_response(),
     }

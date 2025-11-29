@@ -1,5 +1,4 @@
 use serde::{Deserialize, Serialize};
-use crate::enums::step_3_risk_classification_enums::{ThreatRisk};
 use crate::enums::step_4_risk_treatment_enums::RiskTransferType;
 
 #[derive(Serialize)]
@@ -10,7 +9,7 @@ pub struct TourRiskClassificationCalculatedModel {
     pub integrity_impaired: bool,
     pub availability_impaired: bool,
     pub treatment_type: Option<i32>,
-    pub risk: ThreatRisk,
+    pub risk: i32,
 }
 
 #[derive(Deserialize)]
