@@ -25,6 +25,19 @@ pub struct RiskAcceptanceModel {
     pub explanation: String,
 }
 
+#[derive(Deserialize)]
+pub struct RiskAvoidanceCreateModel {
+    pub name: String,
+    pub explanation: String,
+}
+
+#[derive(Serialize)]
+pub struct RiskAvoidanceModel {
+    pub code: String,
+    pub name: String,
+    pub explanation: String,
+}
+
 // todo  merge with TourRiskClassificationCalculatedModel?
 #[derive(Serialize)]
 pub struct RiskTreatmentModel {
