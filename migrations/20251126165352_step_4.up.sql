@@ -13,6 +13,15 @@ CREATE TABLE risk_avoidance
     explanation TEXT NOT NULL
 );
 
+CREATE TABLE risk_transfer
+(
+    code CHAR(10) NOT NULL PRIMARY KEY REFERENCES risk_treatment_code(code),
+    name VARCHAR(200) NOT NULL,
+    risk_transfer_type INTEGER NOT NULL,
+    checklist VARCHAR(100)[] NOT NULL,
+    explanation TEXT NOT NULL
+);
+
 CREATE TABLE risk_treatment
 (
     rap_code    CHAR(10)    NOT NULL REFERENCES risk_analysis_process (code),

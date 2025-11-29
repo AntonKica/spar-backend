@@ -4,7 +4,7 @@ use crate::enums::step_3_risk_classification_enums::ThreatRisk;
 use crate::enums::step_4_risk_treatment_enums::RiskTreatmentType;
 use crate::model::asset_model::AssetModel;
 use crate::model::step_3_risk_classification_models::TourRiskClassificationModel;
-use crate::model::step_4_risk_treatment_models::{RiskAcceptanceCreateModel, RiskAcceptanceModel, RiskAvoidanceCreateModel, RiskAvoidanceModel, RiskTreatmentModel, TourRiskClassificationCalculatedModel};
+use crate::model::step_4_risk_treatment_models::{RiskAcceptanceCreateModel, RiskAcceptanceModel, RiskAvoidanceCreateModel, RiskAvoidanceModel, RiskTransferCreateModel, RiskTransferModel, RiskTreatmentModel, TourRiskClassificationCalculatedModel};
 use crate::service::step_3_risk_classification_service::Step3RiskClassificationService;
 
 pub struct Step4RiskTreatmentService;
@@ -87,7 +87,7 @@ impl Step4RiskTreatmentService {
     pub async fn list_risk_acceptance(db: &Pool<Postgres>) -> ApiResult<Vec<RiskAcceptanceModel>> {
         Ok(sqlx::query_as!(RiskAcceptanceModel, r#" SELECT * FROM risk_acceptance"#).fetch_all(db).await?)
     }
-    
+
     pub async fn risk_avoidance_by_code(
         db: &Pool<Postgres>,
         avd_code: String,
@@ -102,6 +102,22 @@ impl Step4RiskTreatmentService {
 
     pub async fn list_risk_avoidance(db: &Pool<Postgres>) -> ApiResult<Vec<RiskAvoidanceModel>> {
         Ok(sqlx::query_as!(RiskAvoidanceModel, r#" SELECT * FROM risk_avoidance"#).fetch_all(db).await?)
+    }
+
+    pub async fn risk_transfer_by_code(
+        db: &Pool<Postgres>,
+        trf_code: String,
+    ) -> ApiResult<RiskTransferModel> {
+        Ok(
+            sqlx::query_as!(RiskTransferModel, r#" SELECT * FROM risk_transfer WHERE code = $1"#, trf_code.clone())
+                .fetch_optional(db)
+                .await?
+                .ok_or_else(|| ApiError::NotFound(format!("Risk avoidance {} not found", trf_code)))?
+        )
+    }
+
+    pub async fn list_risk_transfer(db: &Pool<Postgres>) -> ApiResult<Vec<RiskTransferModel>> {
+        Ok(sqlx::query_as!(RiskTransferModel, r#" SELECT * FROM risk_transfer"#).fetch_all(db).await?)
     }
 
     pub async fn risk_treatment(
@@ -142,6 +158,25 @@ impl Step4RiskTreatmentService {
 
         Ok(())
     }
+    async fn add_risk_treatment(
+        tx: &mut PgConnection,
+        rap_code: String,
+        tour_code: String,
+        threat_code: String,
+        treatment_type: RiskTreatmentType,
+        treatment_code: String,
+    ) -> ApiResult<()> {
+        sqlx::query(r#"INSERT INTO risk_treatment VALUES ($1,$2,$3,$4,$5)"#)
+            .bind(rap_code)
+            .bind(tour_code)
+            .bind(threat_code)
+            .bind(treatment_type)
+            .bind(treatment_code)
+            .execute(&mut *tx)
+            .await?;
+
+        Ok(())
+    }
     pub async fn risk_accept(
         tx: &mut PgConnection,
         rap_code: String,
@@ -150,15 +185,7 @@ impl Step4RiskTreatmentService {
         acp_code: String,
     ) -> ApiResult<()> {
         Self::clear_risk_treatment(&mut *tx, rap_code.clone(), tour_code.clone(), threat_code.clone()).await?;
-
-        sqlx::query(r#"INSERT INTO risk_treatment VALUES ($1,$2,$3,$4,$5)"#)
-            .bind(rap_code)
-            .bind(tour_code)
-            .bind(threat_code)
-            .bind(RiskTreatmentType::Acceptance)
-            .bind(acp_code)
-            .execute(&mut *tx)
-            .await?;
+        Self::add_risk_treatment(&mut *tx, rap_code, tour_code, threat_code, RiskTreatmentType::Acceptance, acp_code).await?;
 
         Ok(())
     }
@@ -216,15 +243,7 @@ impl Step4RiskTreatmentService {
         avd_code: String,
     ) -> ApiResult<()> {
         Self::clear_risk_treatment(&mut *tx, rap_code.clone(), tour_code.clone(), threat_code.clone()).await?;
-
-        sqlx::query(r#"INSERT INTO risk_treatment VALUES ($1,$2,$3,$4,$5)"#)
-            .bind(rap_code)
-            .bind(tour_code)
-            .bind(threat_code)
-            .bind(RiskTreatmentType::Avoidance)
-            .bind(avd_code)
-            .execute(&mut *tx)
-            .await?;
+        Self::add_risk_treatment(&mut *tx, rap_code, tour_code, threat_code, RiskTreatmentType::Avoidance, avd_code).await?;
 
         Ok(())
     }
@@ -254,5 +273,47 @@ impl Step4RiskTreatmentService {
             .await?;
 
         Ok(code)
+    }
+
+    pub async fn create_risk_transfer(
+        tx: &mut PgConnection,
+        create_model: RiskTransferCreateModel,
+    ) -> ApiResult<String> {
+        let code = Self::create_risk_classification_code(&mut *tx, Self::RISK_ACCEPTANCE_TABLE_PREFIX).await?;
+        sqlx::query(r#"INSERT INTO risk_transfer VALUES ($1,$2,$3,$4,$5)"#)
+            .bind(code.clone())
+            .bind(create_model.name)
+            .bind(create_model.risk_transfer_type)
+            .bind(create_model.checklist)
+            .bind(create_model.explanation)
+            .execute(&mut *tx)
+            .await?;
+
+        Ok(code)
+    }
+
+    pub async fn risk_transfer(
+        tx: &mut PgConnection,
+        rap_code: String,
+        tour_code: String,
+        threat_code: String,
+        tsf_code: String,
+    ) -> ApiResult<()> {
+        Self::clear_risk_treatment(&mut *tx, rap_code.clone(), tour_code.clone(), threat_code.clone()).await?;
+        Self::add_risk_treatment(&mut *tx, rap_code, tour_code, threat_code, RiskTreatmentType::Transfer, tsf_code).await?;
+
+        Ok(())
+    }
+    pub async fn risk_transfer_with_create(
+        tx: &mut PgConnection,
+        rap_code: String,
+        tour_code: String,
+        threat_code: String,
+        create_model: RiskTransferCreateModel,
+    ) -> ApiResult<String> {
+        let acp_code = Self::create_risk_transfer(&mut *tx, create_model).await?;
+        Self::risk_avoid(&mut *tx, rap_code, tour_code, threat_code, acp_code.clone()).await?;
+
+        Ok(acp_code)
     }
 }

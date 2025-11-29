@@ -9,7 +9,7 @@ use actix_web::{get, web, HttpResponse, Responder, Scope};
 use serde::Serialize;
 use crate::enums::step_2_threat_identification_enums::ThreatRelevance;
 use crate::enums::step_3_risk_classification_enums::{ThreatImpact, ThreatProbability, ThreatRisk};
-use crate::enums::step_4_risk_treatment_enums::RiskTreatmentType;
+use crate::enums::step_4_risk_treatment_enums::{RiskTransferType, RiskTreatmentType};
 
 #[derive(Serialize)]
 struct EnumResponse {
@@ -22,6 +22,7 @@ struct EnumResponse {
     asset_type: Vec<EnumCodeName>,
     process_status: Vec<EnumCodeName>,
     process_step: Vec<EnumCodeName>,
+    risk_transfer_type: Vec<EnumCodeName>,
 }
 pub struct EnumRoute {}
 
@@ -44,6 +45,7 @@ async fn list() -> impl Responder {
             asset_type: AssetType::iter().map(EnumCodeName::from).collect(),
             process_status: ProcessStatus::iter().map(EnumCodeName::from).collect(),
             process_step: ProcessStep::iter().map(EnumCodeName::from).collect(),
+            risk_transfer_type: RiskTransferType::iter().map(EnumCodeName::from).collect(),
         }
     ))
 }

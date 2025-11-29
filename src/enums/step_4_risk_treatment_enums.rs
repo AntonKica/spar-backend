@@ -17,10 +17,30 @@ impl EnumMeta for RiskTreatmentType {
 
     fn display_name(&self) -> &'static str {
         match self {
-            RiskTreatmentType::Acceptance => "akceptovanie",
-            RiskTreatmentType::Avoidance => "vyhnutie sa",
-            RiskTreatmentType::Transfer => "prenesenie",
-            RiskTreatmentType::Reduction => "redukovanie/modifikácia",
+            Self::Acceptance => "akceptovanie",
+            Self::Avoidance => "vyhnutie sa",
+            Self::Transfer => "prenesenie",
+            Self::Reduction => "redukovanie/modifikácia",
+        }
+    }
+}
+
+int_enum! {
+    RiskTransferType {
+        Outsourcing,
+        Insurance,
+    }
+}
+
+impl EnumMeta for RiskTransferType {
+    fn code(&self) -> i32 {
+        *self as i32
+    }
+
+    fn display_name(&self) -> &'static str {
+        match self {
+            Self::Outsourcing => "outsourcovanie",
+            Self::Insurance => "poistenie",
         }
     }
 }
