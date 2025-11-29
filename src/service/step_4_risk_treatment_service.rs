@@ -355,10 +355,10 @@ impl Step4RiskTreatmentService {
         threat_code: String,
         create_model: RiskTransferCreateModel,
     ) -> ApiResult<String> {
-        let acp_code = Self::create_risk_transfer(&mut *tx, create_model).await?;
-        Self::risk_avoid(&mut *tx, rap_code, tour_code, threat_code, acp_code.clone()).await?;
+        let trs_code = Self::create_risk_transfer(&mut *tx, create_model).await?;
+        Self::risk_transfer(&mut *tx, rap_code, tour_code, threat_code, trs_code.clone()).await?;
 
-        Ok(acp_code)
+        Ok(trs_code)
     }
 
 
