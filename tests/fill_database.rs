@@ -7,10 +7,12 @@ use spar_backend::enums::asset_enums::ProtectionNeeds;
 use spar_backend::enums::risk_analysis_process_enums::ProcessStep;
 use spar_backend::enums::step_2_threat_identification_enums::ThreatRelevance;
 use spar_backend::enums::step_3_risk_classification_enums::{ThreatImpact, ThreatProbability};
+use spar_backend::enums::step_4_risk_treatment_enums::RiskTransferType;
 use spar_backend::model::asset_model::AssetCreateModel; use spar_backend::model::fulfilled_threat_models::FulfilledThreatCreateModel; use spar_backend::model::security_measure_models::SecurityMeasureCreateModel;
 use spar_backend::model::threat_models::ThreatCreateModel;
 use spar_backend::model::step_2_threat_identification_models::{TourThreatReviewModel};
 use spar_backend::model::step_3_risk_classification_models::TourRiskClassificationClassifyModel;
+use spar_backend::model::step_4_risk_treatment_models::{RiskAcceptanceCreateModel, RiskAvoidanceCreateModel, RiskReductionCreateModel, RiskTransferCreateModel, RiskTransferModel};
 use spar_backend::service::asset_service::AssetService;
 use spar_backend::service::fulfilled_threat_service::FulfilledThreatService;
 use spar_backend::service::GeneralService;
@@ -19,9 +21,18 @@ use spar_backend::service::security_measure_service::SecurityMeasureService;
 use spar_backend::service::threat_service::ThreatService;
 use spar_backend::service::step_2_threat_idenfication_service::Step2ThreatIdentificationService;
 use spar_backend::service::step_3_risk_classification_service::Step3RiskClassificationService;
+use spar_backend::service::step_4_risk_treatment_service::Step4RiskTreatmentService;
 
 async fn clear_database(tx: &mut PgConnection) {
+    sqlx::query(r#"DELETE FROM risk_treatment"#).execute(&mut *tx).await.unwrap();
+    sqlx::query(r#"DELETE FROM risk_acceptance"#).execute(&mut *tx).await.unwrap();
+    sqlx::query(r#"DELETE FROM risk_avoidance"#).execute(&mut *tx).await.unwrap();
+    sqlx::query(r#"DELETE FROM risk_transfer"#).execute(&mut *tx).await.unwrap();
+    sqlx::query(r#"DELETE FROM risk_reduction"#).execute(&mut *tx).await.unwrap();
+
+    sqlx::query(r#"DELETE FROM risk_treatment_code"#).execute(&mut *tx).await.unwrap();
     sqlx::query(r#"DELETE FROM risk_classification"#).execute(&mut *tx).await.unwrap();
+
     sqlx::query(r#"DELETE FROM tour_threat_list"#).execute(&mut *tx).await.unwrap();
     sqlx::query(r#"DELETE FROM rap_tour_list"#).execute(&mut *tx).await.unwrap();
     sqlx::query(r#"DELETE FROM risk_analysis_process"#).execute(&mut *tx).await.unwrap();
@@ -185,6 +196,57 @@ async fn create_assets() {
     }).await.unwrap();
 
     RiskAnalysisProcessService::step_complete(&mut *tx, rap.clone(), ProcessStep::Step3RiskClassification).await.unwrap();
+
+    let risk_accept = Step4RiskTreatmentService::risk_accept_with_create(&mut *tx, rap.clone(), bp.clone(), "G-01".to_owned(), RiskAcceptanceCreateModel{
+        name: "Akceptovanie by default".to_owned(),
+        explanation: "Riziko je zvládnuteľné".to_owned()
+    }).await.unwrap();
+
+    Step4RiskTreatmentService::risk_avoid_with_create(&mut *tx, rap.clone(), bp.clone(), "G-02".to_owned(), RiskAvoidanceCreateModel{
+        name: "Vyhnutie by default".to_owned(),
+        explanation: "Riziko nie je podstatne, vymazali sme zdrojov pôvodnej hrozby".to_owned()
+    }).await.unwrap();
+
+    Step4RiskTreatmentService::risk_transfer_with_create(&mut *tx, rap.clone(), bp.clone(), "G-03".to_owned(), RiskTransferCreateModel{
+        name: "Outsourcovanie vyvoja na indianov".to_owned(),
+        risk_transfer_type: RiskTransferType::Outsourcing,
+        checklist: vec!["zabecpecit vhodne zmluvne podmienky".to_owned(), "zabezpecit kvalitne vyvojove štandardy".to_owned()],
+        explanation: "IT v Indii to zvladne lepsie".to_owned()
+    }).await.unwrap();
+
+    Step4RiskTreatmentService::risk_reduce_with_create(&mut *tx, rap.clone(), bp.clone(), sth.clone(), RiskReductionCreateModel{
+        name: "Bezpecnosnte opatrenie c.1".to_owned(),
+        confidentiality_protected: true,
+        integrity_protected: true,
+        availability_protected: false,
+        explanation: "Toto opatrenie pomoze znizit dopad na dôvernost".to_owned()
+    }).await.unwrap();
+
+    Step4RiskTreatmentService::risk_reduce_with_create(&mut *tx, rap.clone(), bp.clone(), sth.clone(), RiskReductionCreateModel{
+        name: "Bezpecnosnte opatrenie c.2".to_owned(),
+        confidentiality_protected: false,
+        integrity_protected: true,
+        availability_protected: true,
+        explanation: "Toto opatrenie pomoze znizit dopad na dostupnost".to_owned()
+    }).await.unwrap();
+
+    let risk_reduce = Step4RiskTreatmentService::risk_reduce_with_create(&mut *tx, rap.clone(), bp.clone(), sth.clone(), RiskReductionCreateModel{
+        name: "Bezpecnosnte opatrenie c.3".to_owned(),
+        confidentiality_protected: false,
+        integrity_protected: false,
+        availability_protected: true,
+        explanation: "Toto opatrenie pomoze vyrazne znizit dopad na dostupnost".to_owned()
+    }).await.unwrap();
+
+    Step4RiskTreatmentService::risk_accept(&mut *tx, rap.clone(), switch.clone(), "G-01".to_owned(), risk_accept.clone()).await.unwrap();
+    Step4RiskTreatmentService::risk_reduce(&mut *tx, rap.clone(), switch.clone(), sth.clone(), vec![risk_reduce.clone()]).await.unwrap();
+    Step4RiskTreatmentService::risk_reduce_with_create(&mut *tx, rap.clone(), switch.clone(), sth.clone(), RiskReductionCreateModel{
+        name: "Bezpecnosnte opatrenie c.4".to_owned(),
+        confidentiality_protected: false,
+        integrity_protected: false,
+        availability_protected: true,
+        explanation: "Toto opatrenie pomoze vyrazne znizit dopad na dovernost".to_owned()
+    }).await.unwrap();
 
     tx.commit().await.unwrap();
 }

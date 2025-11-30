@@ -14,8 +14,7 @@ pub struct Step4RiskTreatmentRoute {}
 impl GeneralRoute for Step4RiskTreatmentRoute {
     fn routes() -> Scope {
         web::scope("/step-4-risk-treatment")
-            .service(risk_classification)
-            .service(risk_treatment)
+            .service(risk_treatment_summary)
             .service(list_acceptance)
             .service(get_risk_acceptance)
             .service(risk_accept)
@@ -32,6 +31,9 @@ impl GeneralRoute for Step4RiskTreatmentRoute {
             .service(get_risk_reduction)
             .service(risk_reduce)
             .service(risk_reduce_with_create)
+            // should be here since it matches all
+            .service(risk_classification)
+            .service(risk_treatment)
     }
 }
 
@@ -69,6 +71,17 @@ async fn list_acceptance(data: web::Data<AppState>) -> impl Responder {
     match Step4RiskTreatmentService::list_risk_acceptance(&data.db).await {
         Ok(res) => HttpResponse::Ok().json(ApiResponse::new(res)),
         Err(err) => err.error_response(),
+    }
+}
+
+#[get("/{rap_code}/risk-treatment/summary")]
+async fn risk_treatment_summary(data: web::Data<AppState>, path: Path<String>,
+) -> impl Responder {
+    let rap_code = path.into_inner();
+
+    match Step4RiskTreatmentService::risk_treatment_summary(&data.db, rap_code).await {
+        Ok(res) => HttpResponse::Ok().json(ApiResponse::new(res)),
+        Err(e) => e.error_response(),
     }
 }
 
@@ -324,7 +337,7 @@ async fn list_reduction(data: web::Data<AppState>) -> impl Responder {
     }
 }
 
-#[get("/{rap_code}/{tour_code}/{threat_code}/risk-reduction")]
+#[get("/{rap_code}/{tour_code}/{threat_code}/risk-reduction/")]
 async fn get_risk_reduction(data: web::Data<AppState>, path: Path<(String, String, String)>,
 ) -> impl Responder {
     let (rap_code, tour_code, threat_code) = path.into_inner();
@@ -382,7 +395,6 @@ async fn risk_reduce_with_create(
     };
 
     match Step4RiskTreatmentService::risk_reduce_with_create(
-        &data.db,
         &mut tx,
         rap_code,
         tour_code,

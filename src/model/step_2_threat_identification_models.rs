@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use crate::enums::step_2_threat_identification_enums::ThreatRelevance;
-use crate::model::threat_models::ThreatModel;
+use crate::model::risk_analysis_process_models::CodeNameModel;
 
 #[derive(Deserialize)]
 pub struct TourThreatReviewModel {
@@ -29,6 +29,6 @@ pub struct TourThreatIdentificationModel {
 
 #[derive(Serialize)]
 pub struct TourThreatSummaryModel {
-    pub threat_list: Vec<ThreatModel>,
+    pub threat_list: Vec<CodeNameModel>,
     pub tour_threat_list: Vec<TourThreatIdentificationModel>,
 }

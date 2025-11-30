@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 use crate::enums::step_3_risk_classification_enums::{ThreatImpact, ThreatProbability, ThreatRisk};
+use crate::model::risk_analysis_process_models::CodeNameModel;
 use crate::model::threat_models::ThreatModel;
 
 #[derive(Serialize)]
@@ -36,6 +37,6 @@ pub struct TourRiskClassificationSummaryModel {
 }
 #[derive(Serialize)]
 pub struct RiskClassificationSummaryModel {
-    pub threat_list: Vec<ThreatModel>,
+    pub threat_list: Vec<CodeNameModel>,
     pub tour_risk_classification_list: Vec<TourRiskClassificationSummaryModel>,
 }

@@ -1,5 +1,8 @@
 use serde::{Deserialize, Serialize};
 use crate::enums::step_4_risk_treatment_enums::RiskTransferType;
+use crate::model::asset_model::AssetModel;
+use crate::model::risk_analysis_process_models::CodeNameModel;
+use crate::model::threat_models::ThreatModel;
 
 #[derive(Serialize)]
 pub struct TourRiskClassificationCalculatedModel {
@@ -79,4 +82,14 @@ pub struct RiskReductionModel {
     pub integrity_protected: bool,
     pub availability_protected: bool,
     pub explanation: String,
+}
+
+#[derive(Serialize)]
+pub struct RiskTreatmentSummary {
+    pub threat_summary_list: Vec<CodeNameModel>,
+    pub asset_summary_list: Vec<CodeNameModel>,
+
+    pub risk_acceptance_matrix: Vec<Vec<Option<CodeNameModel>>>,
+    pub risk_avoidance_matrix: Vec<Vec<Option<CodeNameModel>>>,
+    pub risk_transfer_matrix: Vec<Vec<Option<CodeNameModel>>>,
 }

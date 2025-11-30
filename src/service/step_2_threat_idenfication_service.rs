@@ -6,6 +6,7 @@ use crate::service::ApiResult;
 use sqlx::{PgConnection, Pool, Postgres};
 use sqlx::postgres::PgRow;
 use crate::model::asset_model::AssetModel;
+use crate::model::risk_analysis_process_models::CodeNameModel;
 use crate::model::threat_models::ThreatModel;
 use crate::service::asset_service::AssetService;
 
@@ -35,16 +36,12 @@ impl Step2ThreatIdentificationService {
     pub async fn threat_list(
         db: &Pool<Postgres>,
         rap_code: String,
-    ) -> ApiResult<Vec<ThreatModel>> {
+    ) -> ApiResult<Vec<CodeNameModel>> {
         Ok(
-            sqlx::query_as!(ThreatModel, r#"
+            sqlx::query_as!(CodeNameModel, r#"
             SELECT DISTINCT ON(code)
                 threat.code,
-                threat.name,
-                threat.description,
-                threat.confidentiality_impaired,
-                threat.integrity_impaired,
-                threat.availability_impaired
+                threat.name
             FROM tour_threat_list
             INNER JOIN threat ON threat.code = tour_threat_list.threat_code
             WHERE rap_code = $1"#, rap_code.clone())
@@ -56,11 +53,10 @@ impl Step2ThreatIdentificationService {
     pub async fn tour_list(
         db: &Pool<Postgres>,
         rap_code: String,
-    ) -> ApiResult<Vec<TourModel>> {
+    ) -> ApiResult<Vec<CodeNameModel>> {
         Ok(
-        sqlx::query_as!(TourModel, r#"
-            SELECT
-                DISTINCT ON(asset.code)
+        sqlx::query_as!(CodeNameModel, r#"
+            SELECT DISTINCT ON(asset.code)
                 asset.code,
                 asset.name
             FROM tour_threat_list

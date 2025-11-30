@@ -1,10 +1,9 @@
-use crate::service::{next_code_like, ApiError, ApiResult};
+use crate::service::{next_code_like, ApiResult};
 use sqlx::{PgConnection, Pool, Postgres};
-use crate::enums::step_3_risk_classification_enums::ThreatRisk;
 use crate::enums::step_4_risk_treatment_enums::RiskTreatmentType;
-use crate::model::asset_model::AssetModel;
-use crate::model::step_3_risk_classification_models::TourRiskClassificationModel;
-use crate::model::step_4_risk_treatment_models::{RiskAcceptanceCreateModel, RiskAcceptanceModel, RiskAvoidanceCreateModel, RiskAvoidanceModel, RiskReductionCreateModel, RiskReductionModel, RiskTransferCreateModel, RiskTransferModel, RiskTreatmentModel, TourRiskClassificationCalculatedModel};
+use crate::model::risk_analysis_process_models::CodeNameModel;
+use crate::model::step_4_risk_treatment_models::{RiskAcceptanceCreateModel, RiskAcceptanceModel, RiskAvoidanceCreateModel, RiskAvoidanceModel, RiskReductionCreateModel, RiskReductionModel, RiskTransferCreateModel, RiskTransferModel, RiskTreatmentModel, RiskTreatmentSummary, TourRiskClassificationCalculatedModel};
+use crate::service::step_2_threat_idenfication_service::Step2ThreatIdentificationService;
 use crate::service::step_3_risk_classification_service::Step3RiskClassificationService;
 
 pub struct Step4RiskTreatmentService;
@@ -36,7 +35,7 @@ impl Step4RiskTreatmentService {
 
         // treatment_type is Option yet SQLX treat it as an i32
         let risk_classification_list = sqlx::query_as_unchecked!(TourRiskClassificationCalculatedRow, r#"
-            SELECT
+            SELECT DISTINCT ON (threat_code)
                 threat.code as threat_code,
                 threat.name as threat_name,
                 confidentiality_impaired,
@@ -154,14 +153,37 @@ impl Step4RiskTreatmentService {
                 SELECT *
                 FROM risk_treatment
                 WHERE rap_code = $1 AND tour_code = $2 AND threat_code = $3 AND risk_treatment.treatment_code = risk_reduction.code
-            )"#, rap_code, tour_code, threat_code)
+            )
+            ORDER BY code
+            "#, rap_code, tour_code, threat_code)
                 .fetch_all(db)
                 .await?
         )
     }
 
+    pub async fn get_risk_reduction_tx(
+        tx: &mut PgConnection,
+        rap_code: String,
+        tour_code: String,
+        threat_code: String,
+    ) -> ApiResult<Vec<RiskReductionModel>> {
+        Ok(
+            sqlx::query_as!(RiskReductionModel, r#"
+            SELECT * FROM risk_reduction
+            WHERE EXISTS(
+                SELECT *
+                FROM risk_treatment
+                WHERE rap_code = $1 AND tour_code = $2 AND threat_code = $3 AND risk_treatment.treatment_code = risk_reduction.code
+            )
+            ORDER BY code
+            "#, rap_code, tour_code, threat_code)
+                .fetch_all(&mut *tx)
+                .await?
+        )
+    }
+
     pub async fn list_risk_transfer(db: &Pool<Postgres>) -> ApiResult<Vec<RiskTransferModel>> {
-        Ok(sqlx::query_as!(RiskTransferModel, r#" SELECT * FROM risk_transfer"#).fetch_all(db).await?)
+        Ok(sqlx::query_as!(RiskTransferModel, r#" SELECT * FROM risk_transfer ORDER BY code"#).fetch_all(db).await?)
     }
 
     pub async fn risk_treatment(
@@ -250,6 +272,8 @@ impl Step4RiskTreatmentService {
     const RISK_CODE_DIGITS: usize = 10;
     const RISK_ACCEPTANCE_TABLE_PREFIX: &'static str = "ACP";
     const RISK_AVOIDANCE_TABLE_PREFIX: &'static str = "AVD";
+    const RISK_TRANSFER_TABLE_PREFIX: &'static str = "TSF";
+    const RISK_REDUCTION_TABLE_PREFIX: &'static str = "RED";
 
     async fn create_risk_classification_code(
         tx: &mut PgConnection,
@@ -323,7 +347,7 @@ impl Step4RiskTreatmentService {
         tx: &mut PgConnection,
         create_model: RiskTransferCreateModel,
     ) -> ApiResult<String> {
-        let code = Self::create_risk_classification_code(&mut *tx, Self::RISK_ACCEPTANCE_TABLE_PREFIX).await?;
+        let code = Self::create_risk_classification_code(&mut *tx, Self::RISK_TRANSFER_TABLE_PREFIX).await?;
         sqlx::query(r#"INSERT INTO risk_transfer VALUES ($1,$2,$3,$4,$5)"#)
             .bind(code.clone())
             .bind(create_model.name)
@@ -366,8 +390,8 @@ impl Step4RiskTreatmentService {
         tx: &mut PgConnection,
         create_model: RiskReductionCreateModel,
     ) -> ApiResult<String> {
-        let code = Self::create_risk_classification_code(&mut *tx, Self::RISK_ACCEPTANCE_TABLE_PREFIX).await?;
-        sqlx::query(r#"INSERT INTO risk_treatment VALUES ($1,$2,$3,$4,$5,$6)"#)
+        let code = Self::create_risk_classification_code(&mut *tx, Self::RISK_REDUCTION_TABLE_PREFIX).await?;
+        sqlx::query(r#"INSERT INTO risk_reduction VALUES ($1,$2,$3,$4,$5,$6)"#)
             .bind(code.clone())
             .bind(create_model.name)
             .bind(create_model.confidentiality_protected)
@@ -396,14 +420,13 @@ impl Step4RiskTreatmentService {
         Ok(())
     }
     pub async fn risk_reduce_with_create(
-        db: &Pool<Postgres>,
         tx: &mut PgConnection,
         rap_code: String,
         tour_code: String,
         threat_code: String,
         create_model: RiskReductionCreateModel,
     ) -> ApiResult<String> {
-        let risk_reduction_list:Vec<RiskReductionModel> = Self::get_risk_reduction(db, rap_code.clone(), tour_code.clone(), threat_code.clone()).await?;
+        let risk_reduction_list:Vec<RiskReductionModel> = Self::get_risk_reduction_tx(&mut *tx, rap_code.clone(), tour_code.clone(), threat_code.clone()).await?;
         let mut red_code_list: Vec<String> = risk_reduction_list.into_iter().map(|red| red.code).collect();
 
         let red_code = Self::create_risk_reduction(&mut *tx, create_model).await?;
@@ -412,5 +435,39 @@ impl Step4RiskTreatmentService {
         Self::risk_reduce(&mut *tx, rap_code, tour_code, threat_code, red_code_list).await?;
 
         Ok(red_code)
+    }
+
+    pub async fn risk_treatment_summary(
+        db: &Pool<Postgres>,
+        rap_code: String,
+    ) -> ApiResult<RiskTreatmentSummary> {
+        let threat_summary_list = Step2ThreatIdentificationService::threat_list(&db, rap_code.clone()).await?;
+        let asset_summary_list = Step2ThreatIdentificationService::tour_list(&db, rap_code.clone()).await?;
+
+        let mut risk_acceptance_matrix: Vec<Vec<Option<CodeNameModel>>> = Vec::new();
+        let mut risk_avoidance_matrix: Vec<Vec<Option<CodeNameModel>>> = Vec::new();
+        let mut risk_transfer_matrix: Vec<Vec<Option<CodeNameModel>>> = Vec::new();
+        for asset in asset_summary_list.iter() {
+            let mut risk_acceptance_list: Vec<Option<CodeNameModel>> = Vec::new();
+            let mut risk_avoidance_list: Vec<Option<CodeNameModel>> = Vec::new();
+            let mut risk_transfer_list: Vec<Option<CodeNameModel>> = Vec::new();
+            for threat in threat_summary_list.iter() {
+                risk_acceptance_list.push(Self::get_risk_acceptance(&db, rap_code.clone(), asset.code.clone(), threat.code.clone()).await?.map(|i| CodeNameModel{code: i.code, name: i.name}));
+                risk_avoidance_list.push(Self::get_risk_avoidance(&db, rap_code.clone(), asset.code.clone(), threat.code.clone()).await?.map(|i| CodeNameModel{code: i.code, name: i.name}));
+                risk_transfer_list.push(Self::get_risk_transfer(&db, rap_code.clone(), asset.code.clone(), threat.code.clone()).await?.map(|i| CodeNameModel{code: i.code, name: i.name}));
+            }
+            risk_acceptance_matrix.push(risk_acceptance_list);
+            risk_avoidance_matrix.push(risk_avoidance_list);
+            risk_transfer_matrix.push(risk_transfer_list);
+        }
+
+        Ok(
+            RiskTreatmentSummary {
+                threat_summary_list,
+                asset_summary_list,
+                risk_acceptance_matrix,
+                risk_avoidance_matrix,
+                risk_transfer_matrix,
+            })
     }
 }
