@@ -1,2 +1,0 @@
-DROP TABLE tour_elementary_threat_risk_classification;
-DROP TABLE tour_specific_threat_risk_classification;
