@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+use std::fmt::format;
 use crate::service::{next_code_like, ApiResult};
 use sqlx::{PgConnection, Pool, Postgres};
 use crate::enums::step_4_risk_treatment_enums::RiskTreatmentType;
@@ -18,6 +20,15 @@ struct TourRiskClassificationCalculatedRow {
     probability: i32,
     impact: i32,
     treatment_type: Option<i32>,
+}
+
+struct RiskTreatmentRow {
+    treatment_code: String,
+    treatment_name: String,
+    threat_code: String,
+    threat_name: String,
+    tour_code: String,
+    tour_name: String,
 }
 
 impl Step4RiskTreatmentService {
@@ -444,30 +455,71 @@ impl Step4RiskTreatmentService {
         let threat_summary_list = Step2ThreatIdentificationService::threat_list(&db, rap_code.clone()).await?;
         let asset_summary_list = Step2ThreatIdentificationService::tour_list(&db, rap_code.clone()).await?;
 
-        let mut risk_acceptance_matrix: Vec<Vec<Option<CodeNameModel>>> = Vec::new();
-        let mut risk_avoidance_matrix: Vec<Vec<Option<CodeNameModel>>> = Vec::new();
-        let mut risk_transfer_matrix: Vec<Vec<Option<CodeNameModel>>> = Vec::new();
+        let mut risk_treatment_matrix: Vec<Vec<Vec<CodeNameModel>>> = Vec::new();
         for asset in asset_summary_list.iter() {
-            let mut risk_acceptance_list: Vec<Option<CodeNameModel>> = Vec::new();
-            let mut risk_avoidance_list: Vec<Option<CodeNameModel>> = Vec::new();
-            let mut risk_transfer_list: Vec<Option<CodeNameModel>> = Vec::new();
+            let mut risk_treatment_list: Vec<Vec<CodeNameModel>> = Vec::new();
+
             for threat in threat_summary_list.iter() {
-                risk_acceptance_list.push(Self::get_risk_acceptance(&db, rap_code.clone(), asset.code.clone(), threat.code.clone()).await?.map(|i| CodeNameModel{code: i.code, name: i.name}));
-                risk_avoidance_list.push(Self::get_risk_avoidance(&db, rap_code.clone(), asset.code.clone(), threat.code.clone()).await?.map(|i| CodeNameModel{code: i.code, name: i.name}));
-                risk_transfer_list.push(Self::get_risk_transfer(&db, rap_code.clone(), asset.code.clone(), threat.code.clone()).await?.map(|i| CodeNameModel{code: i.code, name: i.name}));
+                let risk_treatment: RiskTreatmentModel = match Self::risk_treatment(&db, rap_code.clone(), asset.code.clone(), threat.code.clone()).await? {
+                    Some(res) => res,
+                    None => continue
+                };
+
+                match RiskTreatmentType::from(risk_treatment.treatment_type) {
+                    RiskTreatmentType::Acceptance => {
+                        Self::get_risk_acceptance(&db, rap_code.clone(), asset.code.clone(), threat.code.clone()).await?.map(|res| risk_treatment_list.push(vec![CodeNameModel{code: res.code, name: res.name}]));
+                    },
+                    RiskTreatmentType::Avoidance => {
+                        Self::get_risk_avoidance(&db, rap_code.clone(), asset.code.clone(), threat.code.clone()).await?.map(|res| risk_treatment_list.push(vec![CodeNameModel{code: res.code, name: res.name}]));
+                    },
+                    RiskTreatmentType::Transfer => {
+                        Self::get_risk_transfer(&db, rap_code.clone(), asset.code.clone(), threat.code.clone()).await?.map(|res| risk_treatment_list.push(vec![CodeNameModel{code: res.code, name: res.name}]));
+                    },
+                    RiskTreatmentType::Reduction => {
+                        let code_name_list = Self::get_risk_reduction(&db, rap_code.clone(), asset.code.clone(), threat.code.clone()).await?.into_iter().map(|res| CodeNameModel{code: res.code, name: res.name}).collect();
+                        risk_treatment_list.push(code_name_list)
+                    },
+                }
             }
-            risk_acceptance_matrix.push(risk_acceptance_list);
-            risk_avoidance_matrix.push(risk_avoidance_list);
-            risk_transfer_matrix.push(risk_transfer_list);
+            risk_treatment_matrix.push(risk_treatment_list);
         }
+        /*
+
+        let risk_reduction_list: Vec<RiskTreatmentRow> = sqlx::query_as!(RiskTreatmentRow, r#"
+            SELECT
+        risk_reduction.code treatment_code,
+        risk_reduction.name treatment_name,
+        threat.code threat_code,
+        threat.name threat_name,
+        asset.code tour_code,
+        asset.name tour_name
+            FROM risk_treatment
+            INNER JOIN risk_reduction ON risk_treatment.treatment_code = risk_reduction.code
+            INNER JOIN threat on risk_treatment.threat_code = threat.code
+            INNER JOIN asset on risk_treatment.tour_code = asset.code
+            WHERE rap_code = $1
+            "#, rap_code.clone())
+            .fetch_all(db)
+            .await?;
+        
+        let mut risk_reduction_nodes: Vec<CodeNameModel> = Vec::new();
+        let mut risk_reduction_lines: Vec<(String, String)> = Vec::new();
+        
+        for risk_reduction in  risk_reduction_list {
+            risk_reduction_nodes.push(CodeNameModel{ code: risk_reduction.treatment_code.clone(), name: risk_reduction.treatment_name.clone()});
+            risk_reduction_nodes.push(CodeNameModel{ code: risk_reduction.threat_code.clone(), name: risk_reduction.threat_name.clone()});
+            risk_reduction_nodes.push(CodeNameModel{ code: risk_reduction.tour_code.clone(), name: risk_reduction.tour_name.clone()});
+            
+            risk_reduction_lines.push( (risk_reduction.treatment_code.clone(), risk_reduction.threat_code.clone()));
+            risk_reduction_lines.push( (risk_reduction.threat_code.clone(), risk_reduction.tour_code.clone()));
+        }
+         */
 
         Ok(
             RiskTreatmentSummary {
                 threat_summary_list,
                 asset_summary_list,
-                risk_acceptance_matrix,
-                risk_avoidance_matrix,
-                risk_transfer_matrix,
+                risk_treatment_matrix,
             })
     }
 }

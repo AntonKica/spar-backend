@@ -7,6 +7,12 @@ pub struct CodeNameModel {
     pub code: String,
     pub name: String,
 }
+
+impl CodeNameModel {
+    pub fn toname(&self) -> String {
+        format!("{} {}", self.code.clone(), self.name.clone())
+    }
+}
 #[derive(Serialize)]
 pub struct RiskAnalysisProcessModel{
     pub code: String,

@@ -89,7 +89,5 @@ pub struct RiskTreatmentSummary {
     pub threat_summary_list: Vec<CodeNameModel>,
     pub asset_summary_list: Vec<CodeNameModel>,
 
-    pub risk_acceptance_matrix: Vec<Vec<Option<CodeNameModel>>>,
-    pub risk_avoidance_matrix: Vec<Vec<Option<CodeNameModel>>>,
-    pub risk_transfer_matrix: Vec<Vec<Option<CodeNameModel>>>,
+    pub risk_treatment_matrix: Vec<Vec<Vec<CodeNameModel>>>,
 }

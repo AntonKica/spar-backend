@@ -25,6 +25,19 @@ impl EnumMeta for RiskTreatmentType {
     }
 }
 
+
+impl From<i32> for RiskTreatmentType {
+    fn from(val: i32) -> Self { 
+        match val { 
+            0 => Self::Acceptance,
+            1 => Self::Avoidance,
+            2 => Self::Transfer,
+            3 => Self::Reduction,
+            _ =>  Self::Acceptance
+        }
+    }
+}
+
 int_enum! {
     RiskTransferType {
         Outsourcing,
