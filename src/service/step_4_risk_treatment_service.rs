@@ -462,7 +462,10 @@ impl Step4RiskTreatmentService {
             for threat in threat_summary_list.iter() {
                 let risk_treatment: RiskTreatmentModel = match Self::risk_treatment(&db, rap_code.clone(), asset.code.clone(), threat.code.clone()).await? {
                     Some(res) => res,
-                    None => continue
+                    None => {
+                        risk_treatment_list.push(vec![]);
+                        continue
+                    }
                 };
 
                 match RiskTreatmentType::from(risk_treatment.treatment_type) {
@@ -501,15 +504,15 @@ impl Step4RiskTreatmentService {
             "#, rap_code.clone())
             .fetch_all(db)
             .await?;
-        
+
         let mut risk_reduction_nodes: Vec<CodeNameModel> = Vec::new();
         let mut risk_reduction_lines: Vec<(String, String)> = Vec::new();
-        
+
         for risk_reduction in  risk_reduction_list {
             risk_reduction_nodes.push(CodeNameModel{ code: risk_reduction.treatment_code.clone(), name: risk_reduction.treatment_name.clone()});
             risk_reduction_nodes.push(CodeNameModel{ code: risk_reduction.threat_code.clone(), name: risk_reduction.threat_name.clone()});
             risk_reduction_nodes.push(CodeNameModel{ code: risk_reduction.tour_code.clone(), name: risk_reduction.tour_name.clone()});
-            
+
             risk_reduction_lines.push( (risk_reduction.treatment_code.clone(), risk_reduction.threat_code.clone()));
             risk_reduction_lines.push( (risk_reduction.threat_code.clone(), risk_reduction.tour_code.clone()));
         }
