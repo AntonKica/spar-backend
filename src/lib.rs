@@ -5,8 +5,6 @@ use crate::configuration::AppConfig;
 pub mod response;
 pub mod model;
 pub mod enums;
-pub mod workflow;
-pub mod workflow_model;
 pub mod service;
 pub mod route;
 pub mod configuration;
