@@ -2,7 +2,6 @@ use sqlx::{PgConnection, Pool, Postgres};
 
 use crate::model::asset_model::{AssetCreateModel, AssetDetailModel, AssetModel};
 use crate::service::{next_code_for, ApiError, ApiResult, GeneralService};
-use crate::service::fulfilled_threat_service::FulfilledThreatService;
 use crate::service::security_measure_service::SecurityMeasureService;
 
 pub struct AssetService;
@@ -38,8 +37,6 @@ impl GeneralService<AssetModel, AssetDetailModel, AssetCreateModel> for AssetSer
         let asset: AssetModel = sqlx::query_as!(AssetModel, r#"SELECT * FROM asset WHERE code = $1"#, code.clone()).fetch_optional(db)
             .await?
             .ok_or_else(|| ApiError::NotFound(format!("Asset {} not found", code)))?;
-
-        let fulfilled_threat_list = FulfilledThreatService::list_detail_by_asset_code(&db, code.clone()).await?;
         let security_measure_list = SecurityMeasureService::list_by_asset_code(&db, code).await?;
 
         Ok(AssetDetailModel{
@@ -50,7 +47,6 @@ impl GeneralService<AssetModel, AssetDetailModel, AssetCreateModel> for AssetSer
                 integrity_protection_needs: asset.integrity_protection_needs,
                 availability_protection_needs: asset.availability_protection_needs,
                 description: asset.description,
-                fulfilled_threat_list,
                 security_measure_list,
             })
     }
@@ -79,16 +75,6 @@ impl AssetService {
         sm_code: String,
     ) -> ApiResult<()> {
         sqlx::query!(r#"INSERT INTO asset_sm_list VALUES ($1, $2)"#, asset_code, sm_code).execute(&mut *tx).await?;
-
-        Ok(())
-    }
-
-    pub async fn assign_fulfilled_threat(
-        tx: &mut PgConnection,
-        asset_code: String,
-        ft_code: String,
-    ) -> ApiResult<()> {
-        sqlx::query!(r#"INSERT INTO asset_ft_list VALUES ($1, $2)"#, asset_code, ft_code).execute(&mut *tx).await?;
 
         Ok(())
     }

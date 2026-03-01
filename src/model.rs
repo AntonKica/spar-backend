@@ -1,7 +1,6 @@
 pub mod risk_classsification_model;
 pub mod risk_treatment_model;
 pub mod asset_model;
-pub mod fulfilled_threat_models;
 pub mod security_measure_models;
 pub mod threat_models;
 pub mod risk_analysis_process_models;

@@ -1,27 +1,26 @@
-use sqlx::PgConnection;
 use spar_backend::configuration::AppConfig;
 use spar_backend::create_connection;
 use spar_backend::enums::asset_enums::AssetType;
-use spar_backend::enums::fulfilled_threat_enums::TimeCostUnit;
 use spar_backend::enums::asset_enums::ProtectionNeeds;
 use spar_backend::enums::risk_analysis_process_enums::ProcessStep;
 use spar_backend::enums::step_2_threat_identification_enums::ThreatRelevance;
 use spar_backend::enums::step_3_risk_classification_enums::{ThreatImpact, ThreatProbability};
 use spar_backend::enums::step_4_risk_treatment_enums::RiskTransferType;
-use spar_backend::model::asset_model::AssetCreateModel; use spar_backend::model::fulfilled_threat_models::FulfilledThreatCreateModel; use spar_backend::model::security_measure_models::SecurityMeasureCreateModel;
-use spar_backend::model::threat_models::ThreatCreateModel;
-use spar_backend::model::step_2_threat_identification_models::{TourThreatReviewModel};
+use spar_backend::model::asset_model::AssetCreateModel;
+use spar_backend::model::security_measure_models::SecurityMeasureCreateModel;
+use spar_backend::model::step_2_threat_identification_models::TourThreatReviewModel;
 use spar_backend::model::step_3_risk_classification_models::TourRiskClassificationClassifyModel;
-use spar_backend::model::step_4_risk_treatment_models::{RiskAcceptanceCreateModel, RiskAvoidanceCreateModel, RiskReductionCreateModel, RiskTransferCreateModel, RiskTransferModel};
+use spar_backend::model::step_4_risk_treatment_models::{RiskAcceptanceCreateModel, RiskAvoidanceCreateModel, RiskReductionCreateModel, RiskTransferCreateModel};
+use spar_backend::model::threat_models::ThreatCreateModel;
 use spar_backend::service::asset_service::AssetService;
-use spar_backend::service::fulfilled_threat_service::FulfilledThreatService;
-use spar_backend::service::GeneralService;
 use spar_backend::service::risk_analysis_process_service::RiskAnalysisProcessService;
 use spar_backend::service::security_measure_service::SecurityMeasureService;
-use spar_backend::service::threat_service::ThreatService;
 use spar_backend::service::step_2_threat_idenfication_service::Step2ThreatIdentificationService;
 use spar_backend::service::step_3_risk_classification_service::Step3RiskClassificationService;
 use spar_backend::service::step_4_risk_treatment_service::Step4RiskTreatmentService;
+use spar_backend::service::threat_service::ThreatService;
+use spar_backend::service::GeneralService;
+use sqlx::PgConnection;
 
 async fn clear_database(tx: &mut PgConnection) {
     sqlx::query(r#"DELETE FROM risk_treatment"#).execute(&mut *tx).await.unwrap();
@@ -37,10 +36,6 @@ async fn clear_database(tx: &mut PgConnection) {
     sqlx::query(r#"DELETE FROM rap_tour_list"#).execute(&mut *tx).await.unwrap();
     sqlx::query(r#"DELETE FROM risk_analysis_process"#).execute(&mut *tx).await.unwrap();
 
-    sqlx::query(r#"DELETE FROM asset_ft_list"#).execute(&mut *tx).await.unwrap();
-    sqlx::query(r#"DELETE FROM asset_sm_list"#).execute(&mut *tx).await.unwrap();
-    sqlx::query(r#"DELETE FROM fulfilled_threat"#).execute(&mut *tx).await.unwrap();
-    sqlx::query(r#"DELETE FROM security_measure"#).execute(&mut *tx).await.unwrap();
     sqlx::query(r#"DELETE FROM asset"#).execute(&mut *tx).await.unwrap();
     sqlx::query(r#"DELETE FROM threat WHERE code NOT SIMILAR TO 'G-\d\d'"#).execute(&mut *tx).await.unwrap();
 }
@@ -101,21 +96,6 @@ async fn create_assets() {
         description: "description".to_string(),
     }).await.unwrap();
 
-    let fth = FulfilledThreatService::create(&mut *tx, FulfilledThreatCreateModel {
-                                       threat_code: "G-17".to_owned(),
-                                       time_cost: Some(1),
-                                       time_cost_unit: Some(TimeCostUnit::Weeks),
-                                       monetary_cost: Some(2000),
-                                       description: "horelo".to_owned(),
-    }).await.unwrap();
-    let fth2 = FulfilledThreatService::create(&mut *tx, FulfilledThreatCreateModel {
-        threat_code: sth.clone(),
-        time_cost: Some(1),
-        time_cost_unit: Some(TimeCostUnit::Weeks),
-        monetary_cost: Some(2000),
-        description: "horelo".to_owned(),
-    }).await.unwrap();
-
     let sm = SecurityMeasureService::create(&mut tx, SecurityMeasureCreateModel{
         name: "prvé bezpečnostné opatrenie".to_owned(),
         description: "rutinné bezpečnostné opatrenie".to_owned(),
@@ -124,8 +104,6 @@ async fn create_assets() {
         availability_protected: true,
     }).await.unwrap();
 
-    AssetService::assign_fulfilled_threat(&mut *tx, bp.clone(), fth).await.unwrap();
-    AssetService::assign_fulfilled_threat(&mut *tx, bp.clone(), fth2).await.unwrap();
     AssetService::assign_security_measure(&mut *tx, bp.clone(), sm).await.unwrap();
 
     let rap = RiskAnalysisProcessService::create(&mut *tx).await.unwrap();

@@ -1,6 +1,5 @@
 use sqlx::{PgConnection, Pool, Postgres};
 
-use crate::model::asset_model::{AssetCreateModel, AssetDetailModel, AssetModel};
 use crate::model::security_measure_models::{SecurityMeasureCreateModel, SecurityMeasureModel};
 use crate::service::{next_code_for, ApiError, ApiResult, GeneralService};
 

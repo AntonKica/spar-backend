@@ -4,7 +4,6 @@ use sqlx::{PgConnection, Pool, Postgres};
 use thiserror::Error;
 
 pub mod asset_service;
-pub mod fulfilled_threat_service;
 pub mod security_measure_service;
 pub mod threat_service;
 pub mod risk_analysis_process_service;

@@ -25,22 +25,6 @@ CREATE TABLE asset_sm_list
     sm_code    CHAR(10) NOT NULL REFERENCES security_measure (code)
 );
 
-CREATE TABLE fulfilled_threat
-(
-    code           CHAR(10)    NOT NULL PRIMARY KEY,
-    threat_code    VARCHAR(10) NULL REFERENCES threat (code),
-    time_cost      INTEGER     NULL,
-    time_cost_unit INTEGER     NULL,
-    monetary_cost  INTEGER     NULL,
-    description    TEXT        NOT NULL
-);
-
-CREATE TABLE asset_ft_list
-(
-    asset_code CHAR(10) NOT NULL REFERENCES asset (code),
-    ft_code    CHAR(10) NOT NULL REFERENCES fulfilled_threat (code)
-);
-
 CREATE TABLE risk_analysis_process
 (
     code           CHAR(10) NOT NULL PRIMARY KEY,
