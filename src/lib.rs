@@ -2,13 +2,16 @@ use sqlx::{Pool, Postgres};
 use sqlx::postgres::PgPoolOptions;
 use crate::configuration::AppConfig;
 
-pub mod response;
-pub mod model;
-pub mod enums;
-pub mod service;
-pub mod route;
 pub mod configuration;
+pub mod route;
+pub mod service;
 pub mod api;
+pub mod model;
+/*
+pub mod response;
+pub mod enums;
+
+ */
 
 pub async fn create_connection(app_config: &AppConfig) -> Pool<Postgres> {
     match PgPoolOptions::new()

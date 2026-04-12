@@ -1,44 +1,78 @@
-use crate::route::asset_route::web::Path;
-use actix_web::ResponseError;
-use crate::api::ApiResponse;
-use actix_web::HttpResponse;
-use crate::service::GeneralService;
-use actix_web::Responder;
-use actix_web::{get, web, Scope};
-use actix_web::guard::Patch;
-use sqlx::postgres::PgSeverity::Panic;
 use crate::configuration::AppState;
-use crate::route::GeneralRoute;
+use crate::service::ErrorResponse;
+use crate::service::ApiError;
+use actix_web::web::Path;
+use utoipa_actix_web::service_config::ServiceConfig;
+use crate::model::asset_model::{AssetModel, AssetModelDetail};
+use crate::service::GeneralService;
+use sqlx::Postgres;
+use sqlx::Pool;
 use crate::service::asset_service::AssetService;
+use crate::model::asset_model::AssetModelCreate;
+use crate::service::ApiResult;
+use actix_web::{get, post, web};
+use crate::route::GeneralRoute;
 
 pub struct AssetRoute;
+use actix_web::web::Json;
+use utoipa_actix_web::scope;
+
 impl GeneralRoute for AssetRoute {
-    fn routes() -> Scope {
-        web::scope("/asset")
-            .service(asset_list)
-            .service(asset_by_code)
-
+    fn configure(cfg: &mut ServiceConfig) {
+        cfg.service(
+            scope("/asset")
+                .service(list)
+                .service(create)
+                .service(detail),
+        );
     }
 }
-
-#[get("/")]
-pub async fn asset_list(
-    data: web::Data<AppState>
-) -> impl Responder {
-    match AssetService::list(&data.db).await {
-        Ok(res) => HttpResponse::Ok().json(ApiResponse::new(res)),
-        Err(err) => err.error_response()
-    }
+#[utoipa::path(
+    responses(
+        (status = 200, description = "List all assets", body = Vec<AssetModel>),
+        (status = 500, description = "Internal server error", body = ErrorResponse)
+    )
+)]
+#[get("")]
+async fn list(state: web::Data<AppState>) -> ApiResult<Json<Vec<AssetModel>>> {
+    let assets = AssetService::list(&state.db).await?;
+    Ok(Json(assets))
+}
+#[derive(serde::Serialize, utoipa::ToSchema)]
+pub struct CreatedCode {
+    pub code: String,
 }
 
-#[get("/{asset_code}")]
-pub async fn asset_by_code(
-    data: web::Data<AppState>,
-    path: Path<String>
-) -> impl Responder {
-    let asset_code = path.into_inner();
-    match AssetService::get_by_code(&data.db, asset_code).await {
-        Ok(res) => HttpResponse::Ok().json(ApiResponse::new(res)),
-        Err(err) => err.error_response()
-    }
+#[utoipa::path(
+    responses(
+        (status = 201, description = "Asset created", body = CreatedCode),
+        (status = 400, description = "Validation error", body = ErrorResponse),
+        (status = 500, description = "Internal server error", body = ErrorResponse)
+    )
+)]#[post("")]
+async fn create(
+    state: web::Data<AppState>,
+    payload: Json<AssetModelCreate>,
+) -> ApiResult<Json<CreatedCode>> {
+    let mut tx = state.db.acquire().await?;
+    let code = AssetService::create(&mut tx, payload.into_inner()).await?;
+    Ok(Json(CreatedCode { code }))
+}
+#[utoipa::path(
+    responses(
+        (status = 200, description = "Asset detail", body = AssetModelDetail),
+        (status = 404, description = "Asset not found", body = ErrorResponse),
+        (status = 500, description = "Internal server error", body = ErrorResponse)
+    )
+)]
+#[get("/{code}")]
+async fn detail(
+    state: web::Data<AppState>,
+    path: Path<String>,
+) -> ApiResult<Json<AssetModelDetail>> {
+    let code = path.into_inner();
+    let asset = AssetService::detail(&state.db, code.clone()).await?;
+    asset
+        .map(Json)
+        .ok_or_else(|| ApiError::NotFound(format!("Asset with code {code} not found")))
 }

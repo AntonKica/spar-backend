@@ -1,0 +1,4 @@
+DROP TABLE it_grundschutz_module_requirement;
+DROP TABLE it_grundschutz_module_threat;
+DROP TABLE it_grundschutz_module;
+DROP TABLE it_grundschutz_threat;

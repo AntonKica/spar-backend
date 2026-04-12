@@ -1,7 +1,29 @@
-use serde::Serialize;
-use crate::enums::asset_enums::{AssetType, ProtectionNeeds};
-use crate::model::security_measure_models::SecurityMeasureModel;
+use crate::model::it_grundchutz_models::ItGrundschutzModule;
 
+#[derive(Debug, Clone, sqlx::FromRow, serde::Serialize, utoipa::ToSchema )]
+pub struct AssetModel {
+    pub code: String,
+    pub name: String,
+    pub description: String,
+    pub module: String,
+}
+
+#[derive(Debug, Clone, serde::Deserialize, utoipa::ToSchema)]
+pub struct AssetModelCreate {
+    pub name: String,
+    pub description: String,
+    pub module: String,
+}
+
+#[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
+pub struct AssetModelDetail {
+    pub code: String,
+    pub name: String,
+    pub description: String,
+    pub module: ItGrundschutzModule,
+}
+
+/*
 #[derive(Debug, Clone)]
 pub struct AssetCreateModel {
     pub name: String,
@@ -33,3 +55,5 @@ pub struct AssetDetailModel {
     pub description: String,
     pub security_measure_list: Vec<SecurityMeasureModel>
 }
+
+*/

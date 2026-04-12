@@ -4,16 +4,34 @@ use sqlx::{PgConnection, Pool, Postgres};
 use thiserror::Error;
 
 pub mod asset_service;
+pub mod it_grundschutz_service;
+/*
 pub mod security_measure_service;
 pub mod threat_service;
 pub mod risk_analysis_process_service;
 pub mod step_2_threat_idenfication_service;
 pub mod step_3_risk_classification_service;
 pub mod step_4_risk_treatment_service;
-
+ */
 // pub mod risk_analysis_process_service;
 // pub mod risk_classification_service;
 // pub mod risk_treatment_service;
+
+#[derive(Debug, serde::Serialize, utoipa::ToSchema)]
+pub struct ErrorResponse {
+    pub status: String,
+    pub message: String,
+}
+
+impl ErrorResponse {
+    fn new(message: impl Into<String>) -> Self {
+        Self {
+            status: "error".to_string(),
+            message: message.into(),
+        }
+    }
+}
+
 #[derive(Error, Debug)]
 pub enum ApiError {
     #[error("Database error: {0}")]
@@ -32,42 +50,31 @@ impl ResponseError for ApiError {
     fn error_response(&self) -> HttpResponse {
         match self {
             ApiError::Database(e) => {
-                println!("{e}");
-                HttpResponse::InternalServerError().json(serde_json::json!({
-                    "status": "error",
-                    "message": "Database error occurred"
-                }))
+                error!("Database error: {e}");
+                HttpResponse::InternalServerError()
+                    .json(ErrorResponse::new("Database error occurred"))
             }
             ApiError::NotFound(msg) => {
-                HttpResponse::NotFound().json(serde_json::json!({
-                    "status": "error",
-                    "message": msg
-                }))
+                HttpResponse::NotFound().json(ErrorResponse::new(msg))
             }
             ApiError::Validation(msg) => {
-                HttpResponse::BadRequest().json(serde_json::json!({
-                    "status": "error",
-                    "message": msg
-                }))
+                HttpResponse::BadRequest().json(ErrorResponse::new(msg))
             }
             ApiError::Internal => {
-                HttpResponse::InternalServerError().json(serde_json::json!({
-                    "status": "error",
-                    "message": "Internal server error"
-                }))
-            },
+                HttpResponse::InternalServerError()
+                    .json(ErrorResponse::new("Internal server error"))
+            }
             ApiError::EnumConversion(val) => {
-                HttpResponse::InternalServerError().json(serde_json::json!({
-                    "status": "error",
-                    "message": format!("Failed to convert enum {val}")
-                }))
-            },
+                error!("Failed to convert enum value: {val}");
+                HttpResponse::InternalServerError()
+                    .json(ErrorResponse::new(format!("Failed to convert enum {val}")))
+            }
         }
     }
 }
 
 pub type ApiResult<T> = Result<T, ApiError>;
-
+/*
 pub async fn next_code_for_db(
     table: &str,
     acronym: &str,
@@ -162,12 +169,9 @@ pub async fn next_code_like(
 
     Ok(format!("{prefix}{next_number:0number_length$}"))
 }
-pub trait GeneralService<T, TT, U> {
-    const TABLE_NAME: &'static str;
-    const CODE_PREFIX: &'static str;
-    const CODE_DIGITS: usize;
-
-    async fn create(tx: &mut PgConnection, create_model: U) -> ApiResult<String>;
-    async fn list(db: &Pool<Postgres>) -> ApiResult<Vec<T>>;
-    async fn get_by_code(db: &Pool<Postgres>, code: String) -> ApiResult<TT>;
+ */
+pub trait GeneralService<ModelCreate, Model, ModelDetail> {
+    async fn create(tx: &mut PgConnection, model_create: ModelCreate) -> ApiResult<String>;
+    async fn list(db: &Pool<Postgres>) -> ApiResult<Vec<Model>>;
+    async fn detail(db: &Pool<Postgres>, code: String) -> ApiResult<Option<ModelDetail>>;
 }
