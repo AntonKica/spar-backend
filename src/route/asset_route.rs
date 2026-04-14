@@ -21,9 +21,9 @@ impl GeneralRoute for AssetRoute {
     fn configure(cfg: &mut ServiceConfig) {
         cfg.service(
             scope("/asset")
-                .service(list)
-                .service(create)
-                .service(detail),
+                .service(list_asset)
+                .service(create_asset)
+                .service(detail_asset),
         );
     }
 }
@@ -34,7 +34,7 @@ impl GeneralRoute for AssetRoute {
     )
 )]
 #[get("")]
-async fn list(state: web::Data<AppState>) -> ApiResult<Json<Vec<AssetModel>>> {
+async fn list_asset(state: web::Data<AppState>) -> ApiResult<Json<Vec<AssetModel>>> {
     let assets = AssetService::list(&state.db).await?;
     Ok(Json(assets))
 }
@@ -50,7 +50,7 @@ pub struct CreatedCode {
         (status = 500, description = "Internal server error", body = ErrorResponse)
     )
 )]#[post("")]
-async fn create(
+async fn create_asset(
     state: web::Data<AppState>,
     payload: Json<AssetModelCreate>,
 ) -> ApiResult<Json<CreatedCode>> {
@@ -66,7 +66,7 @@ async fn create(
     )
 )]
 #[get("/{code}")]
-async fn detail(
+async fn detail_asset(
     state: web::Data<AppState>,
     path: Path<String>,
 ) -> ApiResult<Json<AssetModelDetail>> {

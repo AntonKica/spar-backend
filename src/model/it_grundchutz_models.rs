@@ -1,7 +1,7 @@
 use sqlx::FromRow;
 
 #[derive(Debug, Clone, FromRow, serde::Serialize, utoipa::ToSchema)]
-pub struct ItGrundschutzThreat {
+pub struct ThreatModel {
     pub code: String,
     pub name: String,
     pub description: String,

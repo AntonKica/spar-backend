@@ -21,5 +21,10 @@ async fn create_assets() {
         description: "General laptop for employees enabling remote work".to_string(),
         module: "SYS-3-1".to_string(),
     }).await.unwrap();
+    AssetService::create(&mut *tx, AssetModelCreate {
+        name: "Administrator Laptop".to_string(),
+        description: "Administrator laptop for server admins for remote server management".to_string(),
+        module: "SYS-3-1".to_string(),
+    }).await.unwrap();
     tx.commit().await.unwrap();
 }

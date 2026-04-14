@@ -1,5 +1,11 @@
 pub mod asset_model;
 pub mod it_grundchutz_models;
+
+#[derive(serde::Serialize, utoipa::ToSchema)]
+pub struct CreatedCode {
+    pub code: String,
+}
+
 /*
 pub mod risk_classsification_model;
 pub mod risk_treatment_model;

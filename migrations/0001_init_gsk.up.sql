@@ -1,4 +1,4 @@
-CREATE TABLE it_grundschutz_threat
+CREATE TABLE threat
 (
     code                     VARCHAR(10)  NOT NULL PRIMARY KEY,
     name                     VARCHAR(160) NOT NULL,
@@ -7,6 +7,7 @@ CREATE TABLE it_grundschutz_threat
     integrity_impaired       BOOLEAN      NOT NULL,
     availability_impaired    BOOLEAN      NOT NULL
 );
+CREATE SEQUENCE specific_threat_code_seq;
 
 CREATE TABLE it_grundschutz_module
 (
@@ -19,7 +20,7 @@ CREATE TABLE it_grundschutz_module
 CREATE TABLE it_grundschutz_module_threat
 (
     it_grundschutz_module VARCHAR(10) NOT NULL REFERENCES it_grundschutz_module(code),
-    it_grundschutz_threat VARCHAR(10) NOT NULL REFERENCES it_grundschutz_threat(code)
+    threat VARCHAR(10) NOT NULL REFERENCES threat(code)
 );
 
 CREATE TABLE it_grundschutz_module_requirement
@@ -30,7 +31,7 @@ CREATE TABLE it_grundschutz_module_requirement
 );
 
 
-INSERT INTO it_grundschutz_threat
+INSERT INTO threat
 VALUES ('G-01', 'G 0.1 Fire', '', FALSE, FALSE, TRUE),
        ('G-02', 'G 0.2 Unfavourable Climatic Conditions', '', FALSE, TRUE, TRUE),
        ('G-03', 'G 0.3 Water', '', FALSE, TRUE, TRUE),

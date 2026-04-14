@@ -1,0 +1,4 @@
+DROP TABLE risk_analysis_module;
+DROP TABLE risk_analysis_threat;
+DROP TABLE risk_analysis_asset;
+DROP TABLE risk_analysis;

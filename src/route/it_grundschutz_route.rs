@@ -1,11 +1,9 @@
+use crate::model::it_grundchutz_models::ThreatModel;
 use crate::configuration::AppState;
-use crate::model::it_grundchutz_models::ItGrundschutzThreat;
 use actix_web::get;
 use crate::service::it_grundschutz_service::ItGrundschutzService;
 use actix_web::web::Json;
-use sqlx::Pool;
 use actix_web::web::Path;
-use sqlx::Postgres;
 use actix_web::web;
 use crate::service::{ApiResult, ErrorResponse};
 use utoipa_actix_web::scope;
@@ -24,7 +22,7 @@ impl GeneralRoute for ItGrundschutzRoute {
 }
 #[utoipa::path(
     responses(
-        (status = 200, description = "Threats for the given module", body = Vec<ItGrundschutzThreat>),
+        (status = 200, description = "Threats for the given module", body = Vec<ThreatModel>),
         (status = 500, description = "Internal server error", body = ErrorResponse)
     )
 )]
@@ -32,7 +30,7 @@ impl GeneralRoute for ItGrundschutzRoute {
 async fn threats_by_module(
     state: web::Data<AppState>,
     path: Path<String>,
-) -> ApiResult<Json<Vec<ItGrundschutzThreat>>> {
+) -> ApiResult<Json<Vec<ThreatModel>>> {
     let code = path.into_inner();
     let threats = ItGrundschutzService::threats_by_module(&state.db, code).await?;
     Ok(Json(threats))
