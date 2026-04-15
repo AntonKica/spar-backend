@@ -7,9 +7,9 @@ pub mod route;
 pub mod service;
 pub mod api;
 pub mod model;
+pub mod enums;
 /*
 pub mod response;
-pub mod enums;
 
  */
 

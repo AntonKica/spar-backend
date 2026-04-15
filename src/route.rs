@@ -3,6 +3,8 @@ use utoipa_actix_web::service_config::ServiceConfig;
 pub mod asset_route;
 pub mod it_grundschutz_route;
 pub mod threat_route;
+pub mod risk_analysis_service;
+pub mod enum_route;
 /*
 pub mod enum_route;
 pub mod threat_route;

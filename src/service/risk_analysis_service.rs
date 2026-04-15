@@ -1,11 +1,7 @@
-use sqlx::{FromRow, PgConnection};
+use sqlx::{FromRow, PgConnection, Pool, Postgres};
+use crate::enums::RiskAnalysisState;
 use crate::service::ApiResult;
 
-#[derive(Debug, Clone, Copy, sqlx::Type, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
-#[sqlx(type_name = "risk_analysis_state", rename_all = "snake_case")]
-pub enum RiskAnalysisState {
-    ThreatIdentification,
-}
 
 #[derive(Debug, Clone, FromRow, serde::Serialize, utoipa::ToSchema)]
 pub struct RiskAnalysisModel {
@@ -25,7 +21,7 @@ impl RiskAnalysisService {
             VALUES ($1)
             RETURNING   code,
                         created_at AS "created_at!: chrono::DateTime<chrono::Utc>",
-                        state
+                        state AS "state!: RiskAnalysisState"
             "#,
             RiskAnalysisState::ThreatIdentification as RiskAnalysisState,
         )
@@ -56,5 +52,45 @@ impl RiskAnalysisService {
             .await?;
 
         Ok(risk_analysis.code)
+    }
+
+    pub async fn list(db: &Pool<Postgres>) -> ApiResult<Vec<RiskAnalysisModel>> {
+        let rows = sqlx::query_as!(
+            RiskAnalysisModel,
+            r#"
+            SELECT
+                code,
+                created_at AS "created_at!: chrono::DateTime<chrono::Utc>",
+                state AS "state!: RiskAnalysisState"
+            FROM risk_analysis
+            ORDER BY created_at DESC
+            "#
+        )
+            .fetch_all(db)
+            .await?;
+
+        Ok(rows)
+    }
+
+    pub async fn detail(
+        db: &Pool<Postgres>,
+        code: String,
+    ) -> ApiResult<Option<RiskAnalysisModel>> {
+        let analysis = sqlx::query_as!(
+            RiskAnalysisModel,
+            r#"
+            SELECT
+                code,
+                created_at AS "created_at!: chrono::DateTime<chrono::Utc>",
+                state AS "state!: RiskAnalysisState"
+            FROM risk_analysis
+            WHERE code = $1
+            "#,
+            code,
+        )
+            .fetch_optional(db)
+            .await?;
+
+        Ok(analysis)
     }
 }

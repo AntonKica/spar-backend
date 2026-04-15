@@ -6,7 +6,7 @@ use thiserror::Error;
 pub mod asset_service;
 pub mod it_grundschutz_service;
 pub mod threat_service;
-mod risk_analysis;
+pub mod risk_analysis_service;
 /*
 pub mod security_measure_service;
 pub mod threat_service;
