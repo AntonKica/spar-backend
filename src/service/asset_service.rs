@@ -75,6 +75,24 @@ impl GeneralService<AssetModelCreate, AssetModel, AssetModelDetail> for AssetSer
     }
 }
 
+impl AssetService {
+    pub async fn distinct_modules(db: &Pool<Postgres>) -> ApiResult<Vec<ItGrundschutzModule>> {
+        let rows = sqlx::query_as!(
+            ItGrundschutzModule,
+            r#"
+            SELECT DISTINCT m.code, m.name, m.description
+            FROM it_grundschutz_module m
+            JOIN asset a ON a.module = m.code
+            ORDER BY m.code
+            "#
+        )
+            .fetch_all(db)
+            .await?;
+
+        Ok(rows)
+    }
+}
+
 /*
 impl GeneralService<AssetModel, AssetDetailModel, AssetCreateModel> for AssetService {
     const TABLE_NAME: &'static str = "asset";

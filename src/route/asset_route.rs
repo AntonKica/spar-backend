@@ -1,3 +1,4 @@
+use crate::model::it_grundchutz_models::ItGrundschutzModule;
 use crate::configuration::AppState;
 use crate::service::ErrorResponse;
 use crate::service::ApiError;
@@ -21,9 +22,10 @@ impl GeneralRoute for AssetRoute {
     fn configure(cfg: &mut ServiceConfig) {
         cfg.service(
             scope("/asset")
+                .service(list_asset_modules)
                 .service(list_asset)
                 .service(create_asset)
-                .service(detail_asset),
+                .service(detail_asset)
         );
     }
 }
@@ -75,4 +77,18 @@ async fn detail_asset(
     asset
         .map(Json)
         .ok_or_else(|| ApiError::NotFound(format!("Asset with code {code} not found")))
+}
+
+#[utoipa::path(
+    responses(
+        (status = 200, description = "Distinct modules from assets", body = Vec<ItGrundschutzModule>),
+        (status = 500, description = "Internal server error", body = ErrorResponse)
+    )
+)]
+#[get("/all/module")]
+async fn list_asset_modules(
+    state: web::Data<AppState>,
+) -> ApiResult<Json<Vec<ItGrundschutzModule>>> {
+    let modules = AssetService::distinct_modules(&state.db).await?;
+    Ok(Json(modules))
 }

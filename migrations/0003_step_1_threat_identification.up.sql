@@ -27,3 +27,11 @@ CREATE TABLE risk_analysis_threat (
                                       stage          SMALLINT     NOT NULL CHECK (stage IN (1, 2, 3)),
                                       PRIMARY KEY (risk_analysis, module, threat)
 );
+
+CREATE TABLE module_threat_identification_status (
+                                                     risk_analysis  CHAR(6)      NOT NULL,
+                                                     module         VARCHAR(10)  NOT NULL,
+                                                     done           BOOLEAN      NOT NULL DEFAULT FALSE,
+                                                     PRIMARY KEY (risk_analysis, module),
+                                                     FOREIGN KEY (risk_analysis, module) REFERENCES risk_analysis_module(risk_analysis, module) ON DELETE CASCADE
+);
