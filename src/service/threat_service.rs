@@ -1,4 +1,5 @@
 use sqlx::{PgConnection, Pool, Postgres};
+use crate::enums::ThreatCategory;
 use crate::model::it_grundchutz_models::{ItGrundschutzModule, ThreatModel};
 use crate::service::{ApiError, ApiResult, GeneralService};
 
@@ -9,6 +10,7 @@ pub struct ThreatModelCreate {
     pub confidentiality_impaired: bool,
     pub integrity_impaired: bool,
     pub availability_impaired: bool,
+    pub category: ThreatCategory,
 }
 
 pub struct ThreatService;
@@ -26,11 +28,12 @@ impl GeneralService<ThreatModelCreate, ThreatModel, ThreatModel> for ThreatServi
                 description,
                 confidentiality_impaired,
                 integrity_impaired,
-                availability_impaired
+                availability_impaired,
+                category
             )
             VALUES (
                 'THR-' || LPAD(nextval('specific_threat_code_seq')::TEXT, 4, '0'),
-                $1, $2, $3, $4, $5
+                $1, $2, $3, $4, $5, $6
             )
             RETURNING code
             "#,
@@ -39,6 +42,7 @@ impl GeneralService<ThreatModelCreate, ThreatModel, ThreatModel> for ThreatServi
             model_create.confidentiality_impaired,
             model_create.integrity_impaired,
             model_create.availability_impaired,
+            model_create.category as ThreatCategory,
         )
             .fetch_one(tx)
             .await?;
@@ -56,7 +60,8 @@ impl GeneralService<ThreatModelCreate, ThreatModel, ThreatModel> for ThreatServi
                 description,
                 confidentiality_impaired,
                 integrity_impaired,
-                availability_impaired
+                availability_impaired,
+                category AS "category!: ThreatCategory"
             FROM threat
             ORDER BY code
             "#
@@ -80,7 +85,8 @@ impl GeneralService<ThreatModelCreate, ThreatModel, ThreatModel> for ThreatServi
                 description,
                 confidentiality_impaired,
                 integrity_impaired,
-                availability_impaired
+                availability_impaired,
+                category AS "category!: ThreatCategory"
             FROM threat
             WHERE code = $1
             "#,
@@ -88,7 +94,7 @@ impl GeneralService<ThreatModelCreate, ThreatModel, ThreatModel> for ThreatServi
         )
             .fetch_optional(db)
             .await?;
-        
+
         Ok(threat)
     }
 }

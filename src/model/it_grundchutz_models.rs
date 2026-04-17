@@ -1,4 +1,5 @@
 use sqlx::FromRow;
+use crate::enums::ThreatCategory;
 
 #[derive(Debug, Clone, FromRow, serde::Serialize, utoipa::ToSchema)]
 pub struct ThreatModel {
@@ -8,6 +9,7 @@ pub struct ThreatModel {
     pub confidentiality_impaired: bool,
     pub integrity_impaired: bool,
     pub availability_impaired: bool,
+    pub category: ThreatCategory,
 }
 
 #[derive(Debug, Clone, FromRow, serde::Serialize, utoipa::ToSchema)]

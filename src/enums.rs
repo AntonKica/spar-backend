@@ -73,3 +73,45 @@ impl EnumMeta for RiskAnalysisState {
         }
     }
 }
+
+#[derive(Debug, Clone, Copy, EnumIter, sqlx::Type, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
+#[sqlx(type_name = "threat_category", rename_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
+pub enum ThreatCategory {
+    NaturalThreat,
+    InfrastructureFailure,
+    CompromiseOfFunctionsAndServices,
+    HumanActions,
+    PhysicalThreats,
+    TechnicalFailures,
+    OrganizationalThreats,
+    Other,
+}
+
+impl EnumMeta for ThreatCategory {
+    fn code(&self) -> &'static str {
+        match self {
+            ThreatCategory::NaturalThreat => "natural_threat",
+            ThreatCategory::InfrastructureFailure => "infrastructure_failure",
+            ThreatCategory::CompromiseOfFunctionsAndServices => "compromise_of_functions_and_services",
+            ThreatCategory::HumanActions => "human_actions",
+            ThreatCategory::PhysicalThreats => "physical_threats",
+            ThreatCategory::TechnicalFailures => "technical_failures",
+            ThreatCategory::OrganizationalThreats => "organizational_threats",
+            ThreatCategory::Other => "other",
+        }
+    }
+
+    fn display_name(&self) -> &'static str {
+        match self {
+            ThreatCategory::NaturalThreat => "Natural threats",
+            ThreatCategory::InfrastructureFailure => "Infrastructure failures",
+            ThreatCategory::CompromiseOfFunctionsAndServices => "Compromise of functions and services",
+            ThreatCategory::HumanActions => "Human actions",
+            ThreatCategory::PhysicalThreats => "Physical threats",
+            ThreatCategory::TechnicalFailures => "Technical failures",
+            ThreatCategory::OrganizationalThreats => "Organizational threats",
+            ThreatCategory::Other => "Other",
+        }
+    }
+}

@@ -9,7 +9,7 @@ use crate::enums::asset_enums::AssetType;
 use crate::enums::asset_enums::ProtectionNeeds;
 use crate::enums::risk_analysis_process_enums::{ProcessStatus, ProcessStep};
  */
-use crate::enums::{EnumCodeName, RiskAnalysisState};
+use crate::enums::{EnumCodeName, RiskAnalysisState, ThreatCategory};
 use crate::route::GeneralRoute;
 use actix_web::{get, web, HttpResponse, Responder, Scope};
 use serde::Serialize;
@@ -24,7 +24,8 @@ use crate::enums::step_4_risk_treatment_enums::{RiskTransferType, RiskTreatmentT
 
 #[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
 struct EnumResponse {
-    risk_analysis_state: Vec<EnumCodeName>
+    risk_analysis_state: Vec<EnumCodeName>,
+    threat_category: Vec<EnumCodeName>
     /*
     protection_needs: Vec<EnumCodeName>,
     threat_probability: Vec<EnumCodeName>,
@@ -60,6 +61,7 @@ async fn list() -> ApiResult<Json<EnumResponse>> {
     Ok(Json(
         EnumResponse {
             risk_analysis_state: RiskAnalysisState::iter().map(EnumCodeName::from).collect(),
+            threat_category: ThreatCategory::iter().map(EnumCodeName::from).collect(),
             /*
             protection_needs: ProtectionNeeds::iter().map(EnumCodeName::from).collect(),
             threat_probability: ThreatProbability::iter().map(EnumCodeName::from).collect(),

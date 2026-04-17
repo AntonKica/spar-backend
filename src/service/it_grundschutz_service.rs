@@ -1,3 +1,4 @@
+use crate::enums::ThreatCategory;
 use crate::model::it_grundchutz_models::ThreatModel;
 use crate::service::ApiResult;
 use actix_web::{get, web, web::Json, web::Path};
@@ -19,7 +20,8 @@ impl ItGrundschutzService {
                 t.description,
                 t.confidentiality_impaired,
                 t.integrity_impaired,
-                t.availability_impaired
+                t.availability_impaired,
+                t.category AS "category!: ThreatCategory"
             FROM threat t
             JOIN it_grundschutz_module_threat mt ON mt.threat = t.code
             WHERE mt.it_grundschutz_module = $1

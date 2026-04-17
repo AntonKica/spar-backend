@@ -1,3 +1,14 @@
+CREATE TYPE threat_category AS ENUM (
+    'natural_threat',
+    'infrastructure_failure',
+    'compromise_of_functions_and_services',
+    'human_actions',
+    'physical_threats',
+    'technical_failures',
+    'organizational_threats',
+    'other'
+);
+
 CREATE TABLE threat
 (
     code                     VARCHAR(10)  NOT NULL PRIMARY KEY,
@@ -5,8 +16,10 @@ CREATE TABLE threat
     description              TEXT         NOT NULL,
     confidentiality_impaired BOOLEAN      NOT NULL,
     integrity_impaired       BOOLEAN      NOT NULL,
-    availability_impaired    BOOLEAN      NOT NULL
+    availability_impaired    BOOLEAN      NOT NULL,
+    category                 threat_category NOT NULL
 );
+
 CREATE SEQUENCE specific_threat_code_seq;
 
 CREATE TABLE it_grundschutz_module
@@ -30,60 +43,59 @@ CREATE TABLE it_grundschutz_module_requirement
     description              TEXT         NOT NULL
 );
 
-
 INSERT INTO threat
-VALUES ('G-01', 'G 0.1 Fire', '', FALSE, FALSE, TRUE),
-       ('G-02', 'G 0.2 Unfavourable Climatic Conditions', '', FALSE, TRUE, TRUE),
-       ('G-03', 'G 0.3 Water', '', FALSE, TRUE, TRUE),
-       ('G-04', 'G 0.4 Pollution, Dust, Corrosion', '', FALSE, TRUE, TRUE),
-       ('G-05', 'G 0.5 Natural Disasters', '', FALSE, FALSE, TRUE),
-       ('G-06', 'G 0.6 Catastrophes in the Vicinity', '', FALSE, FALSE, TRUE),
-       ('G-07', 'G 0.7 Major Events in the Vicinity', '', TRUE, TRUE, TRUE),
-       ('G-08', 'G 0.8 Failure or Disruption of the Power Supply', '', FALSE, TRUE, TRUE),
-       ('G-09', 'G 0.9 Failure or Disruption of Communication Networks', '', FALSE, TRUE, TRUE),
-       ('G-10', 'G 0.10 Failure or Disruption of Supply Networks', '', FALSE, FALSE, TRUE),
-       ('G-11', 'G 0.11 Failure or Disruption of Service Providers', '', TRUE, TRUE, TRUE),
-       ('G-12', 'G 0.12 Electromagnetic Interference', '', FALSE, TRUE, TRUE),
-       ('G-13', 'G 0.13 Interception of Compromising Interference Signals', '', TRUE, FALSE, FALSE),
-       ('G-14', 'G 0.14 Interception of Information / Espionage', '', TRUE, FALSE, FALSE),
-       ('G-15', 'G 0.15 Eavesdropping', '', TRUE, FALSE, FALSE),
-       ('G-16', 'G 0.16 Theft of Devices, Storage Media and Documents', '', FALSE, TRUE, TRUE),
-       ('G-17', 'G 0.17 Loss of Devices, Storage Media and Documents', '', FALSE, TRUE, TRUE),
-       ('G-18', 'G 0.18 Poor Planning or Lack of Adaptation', '', TRUE, TRUE, TRUE),
-       ('G-19', 'G 0.19 Disclosure of Sensitive Information', '', TRUE, FALSE, FALSE),
-       ('G-20', 'G 0.20 Information or Products from an Unreliable Source', '', TRUE, TRUE, TRUE),
-       ('G-21', 'G 0.21 Manipulation with Hardware or Software', '', TRUE, TRUE, TRUE),
-       ('G-22', 'G 0.22 Manipulation of Information', '', FALSE, TRUE, FALSE),
-       ('G-23', 'G 0.23 Unauthorised Access to IT Systems', '', TRUE, TRUE, FALSE),
-       ('G-24', 'G 0.24 Destruction of Devices or Storage Media', '', FALSE, FALSE, TRUE),
-       ('G-25', 'G 0.25 Failure of Devices or Systems', '', FALSE, FALSE, TRUE),
-       ('G-26', 'G 0.26 Malfunction of Devices or Systems', '', TRUE, TRUE, TRUE),
-       ('G-27', 'G 0.27 Lack of Resources', '', FALSE, FALSE, TRUE),
-       ('G-28', 'G 0.28 Software Vulnerabilities or Errors', '', TRUE, TRUE, TRUE),
-       ('G-29', 'G 0.29 Violations of Laws or Regulations', '', TRUE, TRUE, TRUE),
-       ('G-30', 'G 0.30 Unauthorised Use or Administration of Devices and Systems', '', TRUE, TRUE, TRUE),
-       ('G-31', 'G 0.31 Incorrect Use or Administration of Devices and Systems', '', TRUE, TRUE, TRUE),
-       ('G-32', 'G 0.32 Misuse of Authorisation', '', TRUE, TRUE, TRUE),
-       ('G-33', 'G 0.33 Shortage of Personnel', '', FALSE, FALSE, TRUE),
-       ('G-34', 'G 0.34 Assault', '', TRUE, TRUE, TRUE),
-       ('G-35', 'G 0.35 Coercion, Blackmail or Corruption', '', TRUE, TRUE, TRUE),
-       ('G-36', 'G 0.36 Identity theft', '', TRUE, TRUE, TRUE),
-       ('G-37', 'G 0.37 Repudiation of Actions', '', TRUE, TRUE, FALSE),
-       ('G-38', 'G 0.38 Misuse of Personal Information', '', TRUE, FALSE, FALSE),
-       ('G-39', 'G 0.39 Malware', '', TRUE, TRUE, TRUE),
-       ('G-40', 'G 0.40 Denial of Service', '', FALSE, FALSE, TRUE),
-       ('G-41', 'G 0.41 Sabotage', '', FALSE, FALSE, TRUE),
-       ('G-42', 'G 0.42 Social Engineering', '', TRUE, TRUE, FALSE),
-       ('G-43', 'G 0.43 Attack with Specially Crafted Messages', '', TRUE, TRUE, FALSE),
-       ('G-44', 'G 0.44 Unauthorised Entry to Premises', '', TRUE, TRUE, TRUE),
-       ('G-45', 'G 0.45 Data Loss', '', FALSE, FALSE, TRUE),
-       ('G-46', 'G 0.46 Loss of Integrity of Sensitive Information', '', FALSE, TRUE, FALSE),
-       ('G-47', 'G 0.47 Harmful Side Effects of IT-Supported Attacks', '', FALSE, FALSE, TRUE)
+VALUES ('G-01', 'Fire', '', FALSE, FALSE, TRUE, 'natural_threat'),
+       ('G-02', 'Unfavourable Climatic Conditions', '', FALSE, TRUE, TRUE, 'natural_threat'),
+       ('G-03', 'Water', '', FALSE, TRUE, TRUE, 'natural_threat'),
+       ('G-04', 'Pollution, Dust, Corrosion', '', FALSE, TRUE, TRUE, 'natural_threat'),
+       ('G-05', 'Natural Disasters', '', FALSE, FALSE, TRUE, 'natural_threat'),
+       ('G-06', 'Catastrophes in the Vicinity', '', FALSE, FALSE, TRUE, 'natural_threat'),
+       ('G-07', 'Major Events in the Vicinity', '', TRUE, TRUE, TRUE, 'natural_threat'),
+       ('G-08', 'Failure or Disruption of the Power Supply', '', FALSE, TRUE, TRUE, 'infrastructure_failure'),
+       ('G-09', 'Failure or Disruption of Communication Networks', '', FALSE, TRUE, TRUE, 'infrastructure_failure'),
+       ('G-10', 'Failure or Disruption of Supply Networks', '', FALSE, FALSE, TRUE, 'infrastructure_failure'),
+       ('G-11', 'Failure or Disruption of Service Providers', '', TRUE, TRUE, TRUE, 'infrastructure_failure'),
+       ('G-12', 'Electromagnetic Interference', '', FALSE, TRUE, TRUE, 'infrastructure_failure'),
+       ('G-13', 'Interception of Compromising Interference Signals', '', TRUE, FALSE, FALSE, 'compromise_of_functions_and_services'),
+       ('G-14', 'Interception of Information / Espionage', '', TRUE, FALSE, FALSE, 'human_actions'),
+       ('G-15', 'Eavesdropping', '', TRUE, FALSE, FALSE, 'human_actions'),
+       ('G-16', 'Theft of Devices, Storage Media and Documents', '', FALSE, TRUE, TRUE, 'physical_threats'),
+       ('G-17', 'Loss of Devices, Storage Media and Documents', '', FALSE, TRUE, TRUE, 'physical_threats'),
+       ('G-18', 'Poor Planning or Lack of Adaptation', '', TRUE, TRUE, TRUE, 'organizational_threats'),
+       ('G-19', 'Disclosure of Sensitive Information', '', TRUE, FALSE, FALSE, 'human_actions'),
+       ('G-20', 'Information or Products from an Unreliable Source', '', TRUE, TRUE, TRUE, 'compromise_of_functions_and_services'),
+       ('G-21', 'Manipulation with Hardware or Software', '', TRUE, TRUE, TRUE, 'human_actions'),
+       ('G-22', 'Manipulation of Information', '', FALSE, TRUE, FALSE, 'human_actions'),
+       ('G-23', 'Unauthorised Access to IT Systems', '', TRUE, TRUE, FALSE, 'human_actions'),
+       ('G-24', 'Destruction of Devices or Storage Media', '', FALSE, FALSE, TRUE, 'physical_threats'),
+       ('G-25', 'Failure of Devices or Systems', '', FALSE, FALSE, TRUE, 'technical_failures'),
+       ('G-26', 'Malfunction of Devices or Systems', '', TRUE, TRUE, TRUE, 'technical_failures'),
+       ('G-27', 'Lack of Resources', '', FALSE, FALSE, TRUE, 'organizational_threats'),
+       ('G-28', 'Software Vulnerabilities or Errors', '', TRUE, TRUE, TRUE, 'technical_failures'),
+       ('G-29', 'Violations of Laws or Regulations', '', TRUE, TRUE, TRUE, 'organizational_threats'),
+       ('G-30', 'Unauthorised Use or Administration of Devices and Systems', '', TRUE, TRUE, TRUE, 'human_actions'),
+       ('G-31', 'Incorrect Use or Administration of Devices and Systems', '', TRUE, TRUE, TRUE, 'human_actions'),
+       ('G-32', 'Misuse of Authorisation', '', TRUE, TRUE, TRUE, 'human_actions'),
+       ('G-33', 'Shortage of Personnel', '', FALSE, FALSE, TRUE, 'organizational_threats'),
+       ('G-34', 'Assault', '', TRUE, TRUE, TRUE, 'human_actions'),
+       ('G-35', 'Coercion, Blackmail or Corruption', '', TRUE, TRUE, TRUE, 'human_actions'),
+       ('G-36', 'Identity theft', '', TRUE, TRUE, TRUE, 'human_actions'),
+       ('G-37', 'Repudiation of Actions', '', TRUE, TRUE, FALSE, 'human_actions'),
+       ('G-38', 'Misuse of Personal Information', '', TRUE, FALSE, FALSE, 'human_actions'),
+       ('G-39', 'Malware', '', TRUE, TRUE, TRUE, 'human_actions'),
+       ('G-40', 'Denial of Service', '', FALSE, FALSE, TRUE, 'human_actions'),
+       ('G-41', 'Sabotage', '', FALSE, FALSE, TRUE, 'human_actions'),
+       ('G-42', 'Social Engineering', '', TRUE, TRUE, FALSE, 'human_actions'),
+       ('G-43', 'Attack with Specially Crafted Messages', '', TRUE, TRUE, FALSE, 'human_actions'),
+       ('G-44', 'Unauthorised Entry to Premises', '', TRUE, TRUE, TRUE, 'physical_threats'),
+       ('G-45', 'Data Loss', '', FALSE, FALSE, TRUE, 'technical_failures'),
+       ('G-46', 'Loss of Integrity of Sensitive Information', '', FALSE, TRUE, FALSE, 'technical_failures'),
+       ('G-47', 'Harmful Side Effects of IT-Supported Attacks', '', FALSE, FALSE, TRUE, 'human_actions')
 ;
 
 INSERT INTO it_grundschutz_module
-VALUES ('SYS-3-1', 'SYS.3.1 Laptops', 'A laptop (also referred to as a notebook) is a PC designed for mobile use.'),
-       ('ORP-2', 'ORP.2 Personnel', 'The staff of a company or public authority are crucial to its success or failure.')
+VALUES ('SYS-3-1', 'Laptops', 'A laptop (also referred to as a notebook) is a PC designed for mobile use.'),
+       ('ORP-2', 'Personnel', 'The staff of a company or public authority are crucial to its success or failure.')
 ;
 
 INSERT INTO it_grundschutz_module_threat
