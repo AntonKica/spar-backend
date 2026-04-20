@@ -1,3 +1,4 @@
+use crate::enums::Risk;
 use strum::IntoEnumIterator;
 use crate::service::ErrorResponse;
 use actix_web::web::Json;
@@ -9,7 +10,7 @@ use crate::enums::asset_enums::AssetType;
 use crate::enums::asset_enums::ProtectionNeeds;
 use crate::enums::risk_analysis_process_enums::{ProcessStatus, ProcessStep};
  */
-use crate::enums::{EnumCodeName, RiskAnalysisState, ThreatCategory};
+use crate::enums::{EnumCodeName, Impact, Likelihood, RiskAnalysisState, ThreatCategory};
 use crate::route::GeneralRoute;
 use actix_web::{get, web, HttpResponse, Responder, Scope};
 use serde::Serialize;
@@ -25,20 +26,10 @@ use crate::enums::step_4_risk_treatment_enums::{RiskTransferType, RiskTreatmentT
 #[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
 struct EnumResponse {
     risk_analysis_state: Vec<EnumCodeName>,
-    threat_category: Vec<EnumCodeName>
-    /*
-    protection_needs: Vec<EnumCodeName>,
-    threat_probability: Vec<EnumCodeName>,
-    threat_impact: Vec<EnumCodeName>,
-    threat_risk: Vec<EnumCodeName>,
-    threat_relevance: Vec<EnumCodeName>,
-    risk_treatment: Vec<EnumCodeName>,
-    asset_type: Vec<EnumCodeName>,
-    process_status: Vec<EnumCodeName>,
-    process_step: Vec<EnumCodeName>,
-    risk_transfer_type: Vec<EnumCodeName>,
-
-     */
+    threat_category: Vec<EnumCodeName>,
+    likelihood: Vec<EnumCodeName>,
+    impact: Vec<EnumCodeName>,
+    risk: Vec<EnumCodeName>,
 }
 pub struct EnumRoute {}
 
@@ -62,6 +53,9 @@ async fn list() -> ApiResult<Json<EnumResponse>> {
         EnumResponse {
             risk_analysis_state: RiskAnalysisState::iter().map(EnumCodeName::from).collect(),
             threat_category: ThreatCategory::iter().map(EnumCodeName::from).collect(),
+            likelihood: Likelihood::iter().map(EnumCodeName::from).collect(),
+            impact: Impact::iter().map(EnumCodeName::from).collect(),
+            risk: Risk::iter().map(EnumCodeName::from).collect(),
             /*
             protection_needs: ProtectionNeeds::iter().map(EnumCodeName::from).collect(),
             threat_probability: ThreatProbability::iter().map(EnumCodeName::from).collect(),

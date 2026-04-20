@@ -10,7 +10,6 @@ pub mod step_2_threat_identification_enums;
 pub mod step_3_risk_classification_enums;
 pub mod step_4_risk_treatment_enums;
 
- */
 
 #[macro_export]
 macro_rules! int_enum {
@@ -31,6 +30,7 @@ macro_rules! int_enum {
         }
     };
 }
+ */
 
 pub trait EnumMeta {
     fn code(&self) -> &'static str;
@@ -55,21 +55,35 @@ where
     }
 }
 
-#[derive(Debug, Clone, Copy, EnumIter, sqlx::Type, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
+#[derive(Debug, Clone, Copy, PartialEq, EnumIter, sqlx::Type, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
 #[sqlx(type_name = "risk_analysis_state", rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
 pub enum RiskAnalysisState {
     ThreatIdentification,
+    RiskClassification
+}
+
+impl RiskAnalysisState {
+    pub fn next(self) -> Option<Self> {
+        match self {
+            Self::ThreatIdentification => Some(Self::RiskClassification),
+            Self::RiskClassification => None,
+        }
+    }
 }
 
 impl EnumMeta for RiskAnalysisState {
     fn code(&self) ->  &'static str {
-        match self { RiskAnalysisState::ThreatIdentification => "threat_identification" }
+        match self {
+            RiskAnalysisState::ThreatIdentification => "threat_identification",
+            RiskAnalysisState::RiskClassification => "risk_classification",
+        }
     }
 
     fn display_name(&self) -> &'static str {
         match self {
-            RiskAnalysisState::ThreatIdentification => "identifikácia hrozieb"
+            RiskAnalysisState::ThreatIdentification => "identifikácia hrozieb",
+            RiskAnalysisState::RiskClassification => "klasifikácia rizík",
         }
     }
 }
@@ -88,6 +102,37 @@ pub enum ThreatCategory {
     Other,
 }
 
+#[derive(Debug, Clone, Copy, EnumIter, sqlx::Type, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
+#[sqlx(type_name = "likelihood", rename_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
+pub enum Likelihood {
+    Rarely,
+    Medium,
+    Often,
+    VeryOften,
+}
+
+#[derive(Debug, Clone, Copy, EnumIter, sqlx::Type, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
+#[sqlx(type_name = "impact", rename_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
+pub enum Impact {
+    Negligible,
+    Limited,
+    Significant,
+    LifeThreatening,
+}
+
+#[derive(Debug, Clone, Copy, EnumIter, PartialEq, sqlx::Type, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
+#[sqlx(type_name = "risk", rename_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
+pub enum Risk {
+    Low,
+    Medium,
+    High,
+    VeryHigh,
+}
+
+
 impl EnumMeta for ThreatCategory {
     fn code(&self) -> &'static str {
         match self {
@@ -104,14 +149,96 @@ impl EnumMeta for ThreatCategory {
 
     fn display_name(&self) -> &'static str {
         match self {
-            ThreatCategory::NaturalThreat => "Natural threats",
-            ThreatCategory::InfrastructureFailure => "Infrastructure failures",
-            ThreatCategory::CompromiseOfFunctionsAndServices => "Compromise of functions and services",
-            ThreatCategory::HumanActions => "Human actions",
-            ThreatCategory::PhysicalThreats => "Physical threats",
-            ThreatCategory::TechnicalFailures => "Technical failures",
-            ThreatCategory::OrganizationalThreats => "Organizational threats",
-            ThreatCategory::Other => "Other",
+            ThreatCategory::NaturalThreat => "Prírodné hrozby",
+            ThreatCategory::InfrastructureFailure => "Zlyhania infraštruktúry",
+            ThreatCategory::CompromiseOfFunctionsAndServices => "Kompromitácia funkcií a služieb",
+            ThreatCategory::HumanActions => "Ľudské činy",
+            ThreatCategory::PhysicalThreats => "Fyzické hrozby",
+            ThreatCategory::TechnicalFailures => "Technické zlyhania",
+            ThreatCategory::OrganizationalThreats => "Organizačné hrozby",
+            ThreatCategory::Other => "Ostatné",
+        }
+    }
+}
+impl EnumMeta for Likelihood {
+    fn code(&self) -> &'static str {
+        match self {
+            Likelihood::Rarely => "rarely",
+            Likelihood::Medium => "medium",
+            Likelihood::Often => "often",
+            Likelihood::VeryOften => "very_often",
+        }
+    }
+
+    fn display_name(&self) -> &'static str {
+        match self {
+            Likelihood::Rarely => "zriedkavo",
+            Likelihood::Medium => "stredne",
+            Likelihood::Often => "často",
+            Likelihood::VeryOften => "veľmi často",
+        }
+    }
+}
+
+impl EnumMeta for Impact {
+    fn code(&self) -> &'static str {
+        match self {
+            Impact::Negligible => "negligible",
+            Impact::Limited => "limited",
+            Impact::Significant => "significant",
+            Impact::LifeThreatening => "life_threatening",
+        }
+    }
+
+    fn display_name(&self) -> &'static str {
+        match self {
+            Impact::Negligible => "zanedbateľný",
+            Impact::Limited => "obmedzený",
+            Impact::Significant => "značný",
+            Impact::LifeThreatening => "život ohrozujúci",
+        }
+    }
+}
+
+impl EnumMeta for Risk {
+    fn code(&self) -> &'static str {
+        match self {
+            Risk::Low => "low",
+            Risk::Medium => "medium",
+            Risk::High => "high",
+            Risk::VeryHigh => "very_high",
+        }
+    }
+
+    fn display_name(&self) -> &'static str {
+        match self {
+            Risk::Low => "nízke",
+            Risk::Medium => "stredné",
+            Risk::High => "vysoké",
+            Risk::VeryHigh => "veľmi vysoké",
+        }
+    }
+}
+
+impl Risk {
+    pub fn from_matrix(likelihood: Likelihood, impact: Impact) -> Self {
+        match (likelihood, impact) {
+            (Likelihood::Rarely,    Impact::Negligible)      => Risk::Low,
+            (Likelihood::Rarely,    Impact::Limited)         => Risk::Low,
+            (Likelihood::Rarely,    Impact::Significant)     => Risk::Medium,
+            (Likelihood::Rarely,    Impact::LifeThreatening) => Risk::Medium,
+            (Likelihood::Medium,    Impact::Negligible)      => Risk::Low,
+            (Likelihood::Medium,    Impact::Limited)         => Risk::Low,
+            (Likelihood::Medium,    Impact::Significant)     => Risk::Medium,
+            (Likelihood::Medium,    Impact::LifeThreatening) => Risk::High,
+            (Likelihood::Often,     Impact::Negligible)      => Risk::Low,
+            (Likelihood::Often,     Impact::Limited)         => Risk::Medium,
+            (Likelihood::Often,     Impact::Significant)     => Risk::High,
+            (Likelihood::Often,     Impact::LifeThreatening) => Risk::VeryHigh,
+            (Likelihood::VeryOften, Impact::Negligible)      => Risk::Low,
+            (Likelihood::VeryOften, Impact::Limited)         => Risk::High,
+            (Likelihood::VeryOften, Impact::Significant)     => Risk::VeryHigh,
+            (Likelihood::VeryOften, Impact::LifeThreatening) => Risk::VeryHigh,
         }
     }
 }
