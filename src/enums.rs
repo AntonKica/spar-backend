@@ -131,7 +131,15 @@ pub enum Risk {
     High,
     VeryHigh,
 }
-
+#[derive(Debug, Clone, Copy, EnumIter, PartialEq, sqlx::Type, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
+#[sqlx(type_name = "risk_treatment_type", rename_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
+pub enum RiskTreatmentType {
+    Avoid,
+    Reduce,
+    Transfer,
+    Accept,
+}
 
 impl EnumMeta for ThreatCategory {
     fn code(&self) -> &'static str {
@@ -242,3 +250,24 @@ impl Risk {
         }
     }
 }
+
+impl EnumMeta for RiskTreatmentType {
+    fn code(&self) -> &'static str {
+        match self {
+            RiskTreatmentType::Avoid => "avoid",
+            RiskTreatmentType::Reduce => "reduce",
+            RiskTreatmentType::Transfer => "transfer",
+            RiskTreatmentType::Accept => "accept",
+        }
+    }
+
+    fn display_name(&self) -> &'static str {
+        match self {
+            RiskTreatmentType::Avoid => "vyhnúť sa",
+            RiskTreatmentType::Reduce => "redukovať",
+            RiskTreatmentType::Transfer => "preniesť",
+            RiskTreatmentType::Accept => "akceptovať",
+        }
+    }
+}
+

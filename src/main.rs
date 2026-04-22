@@ -12,6 +12,7 @@ use spar_backend::route::asset_route::AssetRoute;
 use spar_backend::route::enum_route::EnumRoute;
 use spar_backend::route::it_grundschutz_route::ItGrundschutzRoute;
 use spar_backend::route::risk_analysis_route::RiskAnalysisRoute;
+use spar_backend::route::security_measure_route::SecurityMeasureRoute;
 use spar_backend::route::threat_route::ThreatRoute;
 /*
 use spar_backend::route::enum_route::EnumRoute;
@@ -47,6 +48,7 @@ async fn main() -> std::io::Result<()> {
                     .configure(ThreatRoute::configure)
                     .configure(EnumRoute::configure)
                     .configure(RiskAnalysisRoute::configure)
+                    .configure(SecurityMeasureRoute::configure)
             )
             .split_for_parts();
 

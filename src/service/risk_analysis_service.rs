@@ -1,9 +1,10 @@
-use crate::enums::{EnumMeta, Risk, RiskAnalysisState};
+use crate::enums::{EnumMeta, Risk, RiskAnalysisState, RiskTreatmentType};
 use crate::enums::{Impact, Likelihood, ThreatCategory};
 use crate::model::asset_model::AssetModel;
 use crate::model::it_grundchutz_models::{ItGrundschutzModule, ThreatModel};
 use crate::service::{ApiError, ApiResult};
 use sqlx::{FromRow, PgConnection, Pool, Postgres};
+use crate::service::security_measure_service::SecurityMeasure;
 
 #[derive(Debug, Clone, FromRow, serde::Serialize, utoipa::ToSchema)]
 pub struct RiskAnalysisModel {
@@ -74,6 +75,15 @@ pub struct RiskMatrix {
     pub cells: Vec<RiskMatrixCell>,
 }
 
+#[derive(Debug, Clone, FromRow, serde::Serialize, utoipa::ToSchema)]
+pub struct RiskTreatmentModel {
+    pub code: String,
+    pub risk_analysis: String,
+    pub module: Option<String>,
+    pub threat: Option<String>,
+    pub treatment: RiskTreatmentType,
+    pub description: String,
+}
 
 pub struct RiskAnalysisService;
 
@@ -548,5 +558,179 @@ impl RiskAnalysisService {
         }
 
         Ok(())
+    }
+    pub async fn sync_org_risk_treatment(
+        tx: &mut PgConnection,
+        code: String,
+        measure_codes: Vec<String>,
+    ) -> ApiResult<()> {
+        sqlx::query!(
+            r#"
+            DELETE FROM risk_treatment
+            WHERE risk_analysis = $1 AND module IS NULL AND threat IS NULL
+            "#,
+            code,
+        )
+            .execute(&mut *tx)
+            .await?;
+
+        if measure_codes.is_empty() {
+            return Ok(());
+        }
+
+        let treatment = sqlx::query_scalar!(
+            r#"
+            INSERT INTO risk_treatment (risk_analysis, treatment)
+            VALUES ($1, 'reduce'::risk_treatment_type)
+            RETURNING code
+            "#,
+            code,
+        )
+            .fetch_one(&mut *tx)
+            .await?;
+
+        for measure_code in &measure_codes {
+            sqlx::query!(
+                r#"
+                INSERT INTO risk_treatment_security_measure (risk_treatment, security_measure)
+                VALUES ($1, $2)
+                "#,
+                treatment,
+                measure_code,
+            )
+                .execute(&mut *tx)
+                .await?;
+        }
+
+        Ok(())
+    }
+
+    pub async fn list_org_risk_treatment_measures(
+        db: &Pool<Postgres>,
+        code: String,
+    ) -> ApiResult<Vec<SecurityMeasure>> {
+        let rows = sqlx::query_as!(
+            SecurityMeasure,
+            r#"
+            SELECT
+                sm.code,
+                sm.treatment AS "treatment!: RiskTreatmentType",
+                sm.description
+            FROM security_measure sm
+            JOIN risk_treatment_security_measure rtsm ON rtsm.security_measure = sm.code
+            JOIN risk_treatment rt ON rt.code = rtsm.risk_treatment
+            WHERE rt.risk_analysis = $1 AND rt.module IS NULL AND rt.threat IS NULL
+            ORDER BY sm.code
+            "#,
+            code,
+        )
+            .fetch_all(db)
+            .await?;
+
+        Ok(rows)
+    }
+    pub async fn sync_threat_risk_treatment(
+        tx: &mut PgConnection,
+        code: String,
+        threat: String,
+        treatment: RiskTreatmentType,
+        measure_codes: Vec<String>,
+    ) -> ApiResult<()> {
+        sqlx::query!(
+            r#"
+            DELETE FROM risk_treatment
+            WHERE risk_analysis = $1 AND module IS NULL AND threat = $2
+            "#,
+            code,
+            threat,
+        )
+            .execute(&mut *tx)
+            .await?;
+
+        if measure_codes.is_empty() {
+            return Ok(());
+        }
+
+        let treatment_code = sqlx::query_scalar!(
+            r#"
+            INSERT INTO risk_treatment (risk_analysis, threat, treatment)
+            VALUES ($1, $2, $3::risk_treatment_type)
+            RETURNING code
+            "#,
+            code,
+            threat,
+            treatment as RiskTreatmentType,
+        )
+            .fetch_one(&mut *tx)
+            .await?;
+
+        for measure_code in &measure_codes {
+            sqlx::query!(
+                r#"
+                INSERT INTO risk_treatment_security_measure (risk_treatment, security_measure)
+                VALUES ($1, $2)
+                "#,
+                treatment_code,
+                measure_code,
+            )
+                .execute(&mut *tx)
+                .await?;
+        }
+
+        Ok(())
+    }
+
+    pub async fn get_threat_risk_treatment(
+        db: &Pool<Postgres>,
+        code: String,
+        threat: String,
+    ) -> ApiResult<Option<RiskTreatmentModel>> {
+        let row = sqlx::query_as!(
+            RiskTreatmentModel,
+            r#"
+            SELECT
+                code,
+                risk_analysis,
+                module,
+                threat,
+                treatment AS "treatment!: RiskTreatmentType",
+                description
+            FROM risk_treatment
+            WHERE risk_analysis = $1 AND module IS NULL AND threat = $2
+            "#,
+            code,
+            threat,
+        )
+            .fetch_optional(db)
+            .await?;
+
+        Ok(row)
+    }
+
+    pub async fn list_threat_risk_treatment_measures(
+        db: &Pool<Postgres>,
+        code: String,
+        threat: String,
+    ) -> ApiResult<Vec<SecurityMeasure>> {
+        let rows = sqlx::query_as!(
+            SecurityMeasure,
+            r#"
+            SELECT
+                sm.code,
+                sm.treatment AS "treatment!: RiskTreatmentType",
+                sm.description
+            FROM security_measure sm
+            JOIN risk_treatment_security_measure rtsm ON rtsm.security_measure = sm.code
+            JOIN risk_treatment rt ON rt.code = rtsm.risk_treatment
+            WHERE rt.risk_analysis = $1 AND rt.module IS NULL AND rt.threat = $2
+            ORDER BY sm.code
+            "#,
+            code,
+            threat,
+        )
+            .fetch_all(db)
+            .await?;
+
+        Ok(rows)
     }
 }

@@ -1,4 +1,4 @@
-use crate::enums::Risk;
+use crate::enums::{Risk, RiskTreatmentType};
 use strum::IntoEnumIterator;
 use crate::service::ErrorResponse;
 use actix_web::web::Json;
@@ -30,6 +30,7 @@ struct EnumResponse {
     likelihood: Vec<EnumCodeName>,
     impact: Vec<EnumCodeName>,
     risk: Vec<EnumCodeName>,
+    treatment_type: Vec<EnumCodeName>,
 }
 pub struct EnumRoute {}
 
@@ -56,6 +57,7 @@ async fn list() -> ApiResult<Json<EnumResponse>> {
             likelihood: Likelihood::iter().map(EnumCodeName::from).collect(),
             impact: Impact::iter().map(EnumCodeName::from).collect(),
             risk: Risk::iter().map(EnumCodeName::from).collect(),
+            treatment_type: RiskTreatmentType::iter().map(EnumCodeName::from).collect(),
             /*
             protection_needs: ProtectionNeeds::iter().map(EnumCodeName::from).collect(),
             threat_probability: ThreatProbability::iter().map(EnumCodeName::from).collect(),

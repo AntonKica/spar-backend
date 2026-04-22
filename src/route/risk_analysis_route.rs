@@ -1,7 +1,9 @@
+use crate::service::risk_analysis_service::RiskTreatmentModel;
+use crate::service::security_measure_service::SecurityMeasure;
 use crate::service::risk_analysis_service::RiskClassificationUpdate;
 use crate::service::risk_analysis_service::RiskMatrix;
 use crate::service::risk_analysis_service::RiskClassificationDetail;
-use crate::enums::RiskAnalysisState;
+use crate::enums::{RiskAnalysisState, RiskTreatmentType};
 use crate::service::risk_analysis_service::ThreatWithModule;
 use crate::model::it_grundchutz_models::ThreatModel;
 use crate::service::risk_analysis_service::ModuleWithStatus;
@@ -25,6 +27,11 @@ impl GeneralRoute for RiskAnalysisRoute {
         cfg.service(
             scope("/risk-analysis")
                 .service(get_risk_matrix)
+                .service(sync_org_risk_treatment)
+                .service(list_org_risk_treatment_measures)
+                .service(sync_threat_risk_treatment)
+                .service(get_threat_risk_treatment)
+                .service(list_threat_risk_treatment_measures)
                 .service(list_risk_analyses)
                 .service(create_risk_analysis)
                 .service(list_risk_analysis_modules)
@@ -297,4 +304,100 @@ async fn update_risk_classification(
         .await?;
     tx.commit().await?;
     Ok(actix_web::HttpResponse::NoContent().finish())
+}
+
+#[utoipa::path(
+    request_body = Vec<String>,
+    responses(
+        (status = 204, description = "Organization risk treatment synced"),
+        (status = 500, description = "Internal server error", body = ErrorResponse)
+    )
+)]
+#[post("/sync-org-risk-treatment/{code}")]
+async fn sync_org_risk_treatment(
+    state: web::Data<AppState>,
+    path: Path<String>,
+    payload: Json<Vec<String>>,
+) -> ApiResult<actix_web::HttpResponse> {
+    let code = path.into_inner();
+    let mut tx = state.db.begin().await?;
+    RiskAnalysisService::sync_org_risk_treatment(&mut tx, code, payload.into_inner()).await?;
+    tx.commit().await?;
+    Ok(actix_web::HttpResponse::NoContent().finish())
+}
+
+#[utoipa::path(
+    responses(
+        (status = 200, description = "Org risk treatment measures", body = Vec<SecurityMeasure>),
+        (status = 500, description = "Internal server error", body = ErrorResponse)
+    )
+)]
+#[get("/list-org-risk-treatment-measures/{code}")]
+async fn list_org_risk_treatment_measures(
+    state: web::Data<AppState>,
+    path: Path<String>,
+) -> ApiResult<Json<Vec<SecurityMeasure>>> {
+    let code = path.into_inner();
+    let rows = RiskAnalysisService::list_org_risk_treatment_measures(&state.db, code).await?;
+    Ok(Json(rows))
+}
+#[derive(Debug, Clone, serde::Deserialize, utoipa::ToSchema)]
+pub struct SyncThreatTreatmentPayload {
+    pub treatment: RiskTreatmentType,
+    pub measures: Vec<String>,
+}
+
+#[utoipa::path(
+    responses(
+        (status = 204, description = "Threat risk treatment synced"),
+        (status = 500, description = "Internal server error", body = ErrorResponse)
+    )
+)]
+#[post("/sync-threat-risk-treatment/{code}/{threat}")]
+async fn sync_threat_risk_treatment(
+    state: web::Data<AppState>,
+    path: Path<(String, String)>,
+    payload: Json<SyncThreatTreatmentPayload>,
+) -> ApiResult<actix_web::HttpResponse> {
+    let (code, threat) = path.into_inner();
+    let p = payload.into_inner();
+    let mut tx = state.db.begin().await?;
+    RiskAnalysisService::sync_threat_risk_treatment(
+        &mut tx, code, threat, p.treatment, p.measures,
+    )
+        .await?;
+    tx.commit().await?;
+    Ok(actix_web::HttpResponse::NoContent().finish())
+}
+
+#[utoipa::path(
+    responses(
+        (status = 200, description = "Threat risk treatment", body = RiskTreatmentModel),
+        (status = 500, description = "Internal server error", body = ErrorResponse)
+    )
+)]
+#[get("/threat-risk-treatment/{code}/{threat}")]
+async fn get_threat_risk_treatment(
+    state: web::Data<AppState>,
+    path: Path<(String, String)>,
+) -> ApiResult<Json<Option<RiskTreatmentModel>>> {
+    let (code, threat) = path.into_inner();
+    let row = RiskAnalysisService::get_threat_risk_treatment(&state.db, code, threat).await?;
+    Ok(Json(row))
+}
+
+#[utoipa::path(
+    responses(
+        (status = 200, description = "Threat risk treatment measures", body = Vec<SecurityMeasure>),
+        (status = 500, description = "Internal server error", body = ErrorResponse)
+    )
+)]
+#[get("/threat-risk-treatment-measures/{code}/{threat}")]
+async fn list_threat_risk_treatment_measures(
+    state: web::Data<AppState>,
+    path: Path<(String, String)>,
+) -> ApiResult<Json<Vec<SecurityMeasure>>> {
+    let (code, threat) = path.into_inner();
+    let rows = RiskAnalysisService::list_threat_risk_treatment_measures(&state.db, code, threat).await?;
+    Ok(Json(rows))
 }

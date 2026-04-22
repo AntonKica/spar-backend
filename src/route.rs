@@ -5,6 +5,7 @@ pub mod it_grundschutz_route;
 pub mod threat_route;
 pub mod risk_analysis_route;
 pub mod enum_route;
+pub mod security_measure_route;
 /*
 pub mod enum_route;
 pub mod threat_route;
