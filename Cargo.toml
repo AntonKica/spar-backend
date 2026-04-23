@@ -18,6 +18,7 @@ futures = "0.3.31"
 log = "0.4.28"
 serde_repr = "0.1.20"
 
-utoipa = { version = "5", features = ["actix_extras", "chrono"] }
+utoipa = { version = "5", features = ["actix_extras", "chrono", "uuid"] }
 utoipa-actix-web = "0.1"
 utoipa-swagger-ui = { version = "9", features = ["actix-web"] }
+uuid = { version = "1.23.1", features = ["serde"] }
