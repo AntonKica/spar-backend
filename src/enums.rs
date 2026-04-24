@@ -60,14 +60,20 @@ where
 #[serde(rename_all = "snake_case")]
 pub enum RiskAnalysisState {
     ThreatIdentification,
-    RiskClassification
+    RiskClassification,
+    RiskTreatment,
+    ItGrundshutzCheck,
+    Done,
 }
 
 impl RiskAnalysisState {
     pub fn next(self) -> Option<Self> {
         match self {
             Self::ThreatIdentification => Some(Self::RiskClassification),
-            Self::RiskClassification => None,
+            Self::RiskClassification => Some(Self::RiskTreatment),
+            RiskAnalysisState::RiskTreatment => Some(Self::ItGrundshutzCheck),
+            RiskAnalysisState::ItGrundshutzCheck => Some(Self::ItGrundshutzCheck),
+            RiskAnalysisState::Done => None
         }
     }
 }
@@ -77,6 +83,9 @@ impl EnumMeta for RiskAnalysisState {
         match self {
             RiskAnalysisState::ThreatIdentification => "threat_identification",
             RiskAnalysisState::RiskClassification => "risk_classification",
+            RiskAnalysisState::RiskTreatment => "risk_treatment",
+            RiskAnalysisState::ItGrundshutzCheck => "it_grundschutz_check",
+            RiskAnalysisState::Done => "done"
         }
     }
 
@@ -84,6 +93,9 @@ impl EnumMeta for RiskAnalysisState {
         match self {
             RiskAnalysisState::ThreatIdentification => "identifikácia hrozieb",
             RiskAnalysisState::RiskClassification => "klasifikácia rizík",
+            RiskAnalysisState::RiskTreatment => "ošetrenie rizík",
+            RiskAnalysisState::ItGrundshutzCheck => "it grundschutz check",
+            RiskAnalysisState::Done => "ukončené"
         }
     }
 }

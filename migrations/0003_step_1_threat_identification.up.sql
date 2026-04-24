@@ -1,5 +1,5 @@
 CREATE SEQUENCE risk_analysis_code_seq;
-CREATE TYPE risk_analysis_state AS ENUM ('threat_identification', 'risk_classification');
+CREATE TYPE risk_analysis_state AS ENUM ('threat_identification', 'risk_classification', 'risk_treatment', 'it_grundschutz_check', 'done');
 
 CREATE TABLE risk_analysis
 (

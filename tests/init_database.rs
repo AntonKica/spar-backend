@@ -9,6 +9,8 @@ use spar_backend::service::risk_analysis_service::{RiskAnalysisService, RiskClas
 use spar_backend::service::security_measure_service::{SecurityMeasureCreate, SecurityMeasureService};
 
 async fn clear_database(tx: &mut PgConnection) {
+    sqlx::query(r#"DELETE FROM risk_treatment"#).execute(&mut *tx).await.unwrap();
+    sqlx::query(r#"DELETE FROM security_measure"#).execute(&mut *tx).await.unwrap();
     sqlx::query(r#"DELETE FROM risk_analysis_threat"#).execute(&mut *tx).await.unwrap();
     sqlx::query(r#"DELETE FROM risk_analysis_asset"#).execute(&mut *tx).await.unwrap();
     sqlx::query(r#"DELETE FROM risk_analysis"#).execute(&mut *tx).await.unwrap();
@@ -82,34 +84,34 @@ async fn create_scenario_risk_treatment(tx: &mut PgConnection) {
     RiskAnalysisService::sync_threat_risk_treatment(&mut *tx, ra.clone(), "G-04".to_string(), RiskTreatmentType::Avoid, vec![avoid]).await.unwrap();
 
     let treatment_encryption = SecurityMeasureService::create(&mut *tx, SecurityMeasureCreate {
-        treatment: RiskTreatmentType::Transfer,
+        treatment: RiskTreatmentType::Reduce,
         description: "The additional capabilities are drawn from subcontractor providing necessary personel.".to_string(),
     }).await.unwrap();
     let treatment_password = SecurityMeasureService::create(&mut *tx, SecurityMeasureCreate {
-        treatment: RiskTreatmentType::Transfer,
+        treatment: RiskTreatmentType::Reduce,
         description: "Proper password policy is enacted providing strong password management.".to_string(),
     }).await.unwrap();
-    RiskAnalysisService::sync_module_threat_risk_treatment(&mut *tx, ra.clone(), "SYS-3-1".to_string(), "G-14".to_string(), RiskTreatmentType::Avoid, vec![treatment_encryption, treatment_password]).await.unwrap();
+    RiskAnalysisService::sync_module_threat_risk_treatment(&mut *tx, ra.clone(), "SYS-3-1".to_string(), "G-14".to_string(), RiskTreatmentType::Reduce, vec![treatment_encryption, treatment_password]).await.unwrap();
 
     let treatment_nda = SecurityMeasureService::create(&mut *tx, SecurityMeasureCreate {
         treatment: RiskTreatmentType::Reduce,
         description: "Emplyee are now obliged to sign a NDA".to_string(),
     }).await.unwrap();
-    RiskAnalysisService::sync_module_threat_risk_treatment(&mut *tx, ra.clone(), "ORP-2".to_string(), "G-14".to_string(), RiskTreatmentType::Avoid, vec![treatment_nda]).await.unwrap();
+    RiskAnalysisService::sync_module_threat_risk_treatment(&mut *tx, ra.clone(), "ORP-2".to_string(), "G-14".to_string(), RiskTreatmentType::Reduce, vec![treatment_nda]).await.unwrap();
 
     let treatment_outsource = SecurityMeasureService::create(&mut *tx, SecurityMeasureCreate {
         treatment: RiskTreatmentType::Transfer,
         description: "The additional capabilities are drawn from subcontractor providing necessary personnel.".to_string(),
     }).await.unwrap();
-    RiskAnalysisService::sync_module_threat_risk_treatment(&mut *tx, ra.clone(), "ORP-2".to_string(), "G-33".to_string(), RiskTreatmentType::Avoid, vec![treatment_outsource]).await.unwrap();
+    RiskAnalysisService::sync_module_threat_risk_treatment(&mut *tx, ra.clone(), "ORP-2".to_string(), "G-33".to_string(), RiskTreatmentType::Transfer, vec![treatment_outsource]).await.unwrap();
 
 
     let treatment_guidelines = SecurityMeasureService::create(&mut *tx, SecurityMeasureCreate {
-        treatment: RiskTreatmentType::Transfer,
+        treatment: RiskTreatmentType::Reduce,
         description: "The organisation will publish and update necessary security guidelines.".to_string(),
     }).await.unwrap();
     let treatment_training = SecurityMeasureService::create(&mut *tx, SecurityMeasureCreate {
-        treatment: RiskTreatmentType::Transfer,
+        treatment: RiskTreatmentType::Reduce,
         description: "The employees will enroll in yearly security training workshops.".to_string(),
     }).await.unwrap();
     RiskAnalysisService::sync_org_risk_treatment(&mut *tx, ra.clone(), vec![treatment_guidelines, treatment_training]).await.unwrap();

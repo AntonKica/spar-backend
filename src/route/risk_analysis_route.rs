@@ -1,3 +1,4 @@
+use actix_web::delete;
 use crate::service::risk_analysis_service::RiskTreatmentModel;
 use crate::service::security_measure_service::SecurityMeasure;
 use crate::service::risk_analysis_service::RiskClassificationUpdate;
@@ -29,11 +30,13 @@ impl GeneralRoute for RiskAnalysisRoute {
                 .service(get_risk_matrix)
                 .service(sync_org_risk_treatment)
                 .service(list_org_risk_treatment_measures)
+                .service(delete_threat_risk_treatment)
                 .service(sync_threat_risk_treatment)
                 .service(get_threat_risk_treatment)
                 .service(list_threat_risk_treatment_measures)
                 .service(get_module_threat_risk_treatment)
                 .service(list_module_threat_risk_treatment_measures)
+                .service(delete_module_threat_risk_treatment)
                 .service(sync_module_threat_risk_treatment)
                 .service(list_risk_analyses)
                 .service(create_risk_analysis)
@@ -49,6 +52,7 @@ impl GeneralRoute for RiskAnalysisRoute {
                 .service(list_risk_classifications)
                 .service(get_risk_classification)
                 .service(update_risk_classification)
+                .service(list_all_treatments)
         );
     }
 }
@@ -352,6 +356,24 @@ pub struct SyncThreatTreatmentPayload {
 
 #[utoipa::path(
     responses(
+        (status = 204, description = "Threat risk treatment deleted"),
+        (status = 500, description = "Internal server error", body = ErrorResponse)
+    )
+)]
+#[delete("/threat-risk-treatment/{code}/{threat}")]
+async fn delete_threat_risk_treatment(
+    state: web::Data<AppState>,
+    path: Path<(String, String)>,
+) -> ApiResult<actix_web::HttpResponse> {
+    let (code, threat) = path.into_inner();
+    let mut tx = state.db.begin().await?;
+    RiskAnalysisService::delete_threat_risk_treatment(&mut tx, code, threat).await?;
+    tx.commit().await?;
+    Ok(actix_web::HttpResponse::NoContent().finish())
+}
+
+#[utoipa::path(
+    responses(
         (status = 204, description = "Threat risk treatment synced"),
         (status = 500, description = "Internal server error", body = ErrorResponse)
     )
@@ -407,6 +429,24 @@ async fn list_threat_risk_treatment_measures(
 
 #[utoipa::path(
     responses(
+        (status = 204, description = "Module+threat risk treatment deleted"),
+        (status = 500, description = "Internal server error", body = ErrorResponse)
+    )
+)]
+#[delete("/module-threat-risk-treatment/{code}/{module}/{threat}")]
+async fn delete_module_threat_risk_treatment(
+    state: web::Data<AppState>,
+    path: Path<(String, String, String)>,
+) -> ApiResult<actix_web::HttpResponse> {
+    let (code, module, threat) = path.into_inner();
+    let mut tx = state.db.begin().await?;
+    RiskAnalysisService::delete_module_threat_risk_treatment(&mut tx, code, module, threat).await?;
+    tx.commit().await?;
+    Ok(actix_web::HttpResponse::NoContent().finish())
+}
+
+#[utoipa::path(
+    responses(
         (status = 204, description = "Module+threat risk treatment synced"),
         (status = 500, description = "Internal server error", body = ErrorResponse)
     )
@@ -457,5 +497,21 @@ async fn list_module_threat_risk_treatment_measures(
 ) -> ApiResult<Json<Vec<SecurityMeasure>>> {
     let (code, module, threat) = path.into_inner();
     let rows = RiskAnalysisService::list_module_threat_risk_treatment_measures(&state.db, code, module, threat).await?;
+    Ok(Json(rows))
+}
+
+#[utoipa::path(
+    responses(
+        (status = 200, description = "All treatments for risk analysis", body = Vec<RiskTreatmentModel>),
+        (status = 500, description = "Internal server error", body = ErrorResponse)
+    )
+)]
+#[get("/list-all-treatments/{code}")]
+async fn list_all_treatments(
+    state: web::Data<AppState>,
+    path: Path<String>,
+) -> ApiResult<Json<Vec<RiskTreatmentModel>>> {
+    let code = path.into_inner();
+    let rows = RiskAnalysisService::list_all_treatments(&state.db, code).await?;
     Ok(Json(rows))
 }

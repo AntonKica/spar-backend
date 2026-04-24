@@ -5,8 +5,6 @@ CREATE TYPE risk_treatment_type AS ENUM (
     'accept'
     );
 
-CREATE SEQUENCE risk_treatment_code_seq;
-
 CREATE TABLE risk_treatment
 (
     id            UUID NOT NULL PRIMARY KEY DEFAULT gen_random_uuid(),

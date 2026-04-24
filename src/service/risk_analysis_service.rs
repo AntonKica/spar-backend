@@ -433,6 +433,9 @@ impl RiskAnalysisService {
 
                 Ok(())
             }
+            RiskAnalysisState::RiskTreatment => Ok(()),
+            RiskAnalysisState::ItGrundshutzCheck => Ok(()),
+            RiskAnalysisState::Done => Ok(())
         }
     }
 
@@ -560,6 +563,7 @@ impl RiskAnalysisService {
 
         Ok(())
     }
+
     pub async fn sync_org_risk_treatment(
         tx: &mut PgConnection,
         code: String,
@@ -630,12 +634,11 @@ impl RiskAnalysisService {
 
         Ok(rows)
     }
-    pub async fn sync_threat_risk_treatment(
+
+    pub async fn delete_threat_risk_treatment(
         tx: &mut PgConnection,
         code: String,
         threat: String,
-        treatment: RiskTreatmentType,
-        measure_codes: Vec<String>,
     ) -> ApiResult<()> {
         sqlx::query!(
             r#"
@@ -645,8 +648,20 @@ impl RiskAnalysisService {
             code,
             threat,
         )
-            .execute(&mut *tx)
+            .execute(tx)
             .await?;
+
+        Ok(())
+    }
+
+    pub async fn sync_threat_risk_treatment(
+        tx: &mut PgConnection,
+        code: String,
+        threat: String,
+        treatment: RiskTreatmentType,
+        measure_codes: Vec<String>,
+    ) -> ApiResult<()> {
+        Self::delete_threat_risk_treatment(&mut *tx, code.clone(), threat.clone()).await?;
 
         if measure_codes.is_empty() {
             return Ok(());
@@ -734,13 +749,12 @@ impl RiskAnalysisService {
 
         Ok(rows)
     }
-    pub async fn sync_module_threat_risk_treatment(
+
+    pub async fn delete_module_threat_risk_treatment(
         tx: &mut PgConnection,
         code: String,
         module: String,
         threat: String,
-        treatment: RiskTreatmentType,
-        measure_codes: Vec<String>,
     ) -> ApiResult<()> {
         sqlx::query!(
             r#"
@@ -751,8 +765,20 @@ impl RiskAnalysisService {
             module,
             threat,
         )
-            .execute(&mut *tx)
+            .execute(tx)
             .await?;
+
+        Ok(())
+    }
+    pub async fn sync_module_threat_risk_treatment(
+        tx: &mut PgConnection,
+        code: String,
+        module: String,
+        threat: String,
+        treatment: RiskTreatmentType,
+        measure_codes: Vec<String>,
+    ) -> ApiResult<()> {
+        Self::delete_module_threat_risk_treatment(&mut *tx, code.clone(), module.clone(), threat.clone()).await?;
 
         if measure_codes.is_empty() {
             return Ok(());
@@ -839,6 +865,31 @@ impl RiskAnalysisService {
             code,
             module,
             threat,
+        )
+            .fetch_all(db)
+            .await?;
+
+        Ok(rows)
+    }
+    pub async fn list_all_treatments(
+        db: &Pool<Postgres>,
+        code: String,
+    ) -> ApiResult<Vec<RiskTreatmentModel>> {
+        let rows = sqlx::query_as!(
+            RiskTreatmentModel,
+            r#"
+            SELECT
+                id,
+                risk_analysis,
+                module,
+                threat,
+                treatment AS "treatment!: RiskTreatmentType",
+                description
+            FROM risk_treatment
+            WHERE risk_analysis = $1
+            ORDER BY module, threat
+            "#,
+            code,
         )
             .fetch_all(db)
             .await?;
