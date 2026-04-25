@@ -8,6 +8,7 @@ pub mod it_grundschutz_service;
 pub mod threat_service;
 pub mod risk_analysis_service;
 pub mod security_measure_service;
+pub mod it_grundschutz_check_service;
 
 #[derive(Debug, serde::Serialize, utoipa::ToSchema)]
 pub struct ErrorResponse {

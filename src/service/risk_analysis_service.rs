@@ -450,7 +450,8 @@ impl RiskAnalysisService {
 
                 Ok(())
             }
-            RiskAnalysisState::RiskTreatment => {
+            RiskAnalysisState::RiskTreatment => Ok(()),
+            RiskAnalysisState::ItGrundschutzCheck => {
                 sqlx::query!(
                 r#"
                 INSERT INTO risk_treatment_requirement_assessment
@@ -487,7 +488,6 @@ impl RiskAnalysisService {
 
                 Ok(())
             },
-            RiskAnalysisState::ItGrundschutzCheck => Ok(()),
             RiskAnalysisState::Done => Ok(())
         }
     }
@@ -1041,61 +1041,6 @@ impl RiskAnalysisService {
         )
             .execute(tx)
             .await?;
-
-        Ok(())
-    }
-    pub async fn update_security_measure_assessment(
-        tx: &mut PgConnection,
-        id: uuid::Uuid,
-        update: RiskAssessmentUpdateModel,
-    ) -> ApiResult<()> {
-        let result = sqlx::query!(
-            r#"
-            UPDATE risk_treatment_security_measure_assessment
-            SET status = $1::implementation_status,
-                evaluation = $2
-            WHERE id = $3
-            "#,
-            update.status as ImplementationStatus,
-            update.evaluation,
-            id,
-        )
-            .execute(tx)
-            .await?;
-
-        if result.rows_affected() == 0 {
-            return Err(ApiError::NotFound(format!(
-                "Security measure assessment {id} not found"
-            )));
-        }
-
-        Ok(())
-    }
-
-    pub async fn update_requirement_assessment(
-        tx: &mut PgConnection,
-        id: uuid::Uuid,
-        update: RiskAssessmentUpdateModel,
-    ) -> ApiResult<()> {
-        let result = sqlx::query!(
-            r#"
-            UPDATE risk_treatment_requirement_assessment
-            SET status = $1::implementation_status,
-                evaluation = $2
-            WHERE id = $3
-            "#,
-            update.status as ImplementationStatus,
-            update.evaluation,
-            id,
-        )
-            .execute(tx)
-            .await?;
-
-        if result.rows_affected() == 0 {
-            return Err(ApiError::NotFound(format!(
-                "Requirement assessment {id} not found"
-            )));
-        }
 
         Ok(())
     }

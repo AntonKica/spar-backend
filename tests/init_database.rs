@@ -122,6 +122,8 @@ async fn create_scenario_risk_treatment(tx: &mut PgConnection) -> String {
     }).await.unwrap();
     RiskAnalysisService::sync_module_threat_risk_treatment(&mut *tx, ra.clone(), "SYS-3-1".to_string(), "G-14".to_string(), RiskTreatmentType::Reduce, vec![treatment_encryption, treatment_password]).await.unwrap();
 
+    RiskAnalysisService::sync_risk_treatment_requirement_for_module(&mut *tx, ra.clone(), "ORP-2".to_string(), vec!["ORP-2-A1".to_string(), "ORP-2-A7".to_string()]).await.unwrap();
+    RiskAnalysisService::sync_risk_treatment_requirement_for_module(&mut *tx, ra.clone(), "SYS-3-1".to_string(), vec!["SYS-3-1-A13".to_string(), "SYS-3-1-A6".to_string()]).await.unwrap();
     let treatment_nda = SecurityMeasureService::create(&mut *tx, SecurityMeasureCreate {
         treatment: RiskTreatmentType::Reduce,
         description: "Emplyee are now obliged to sign a NDA".to_string(),
