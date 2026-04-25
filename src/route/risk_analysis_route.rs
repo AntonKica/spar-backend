@@ -1,5 +1,6 @@
+use crate::model::it_grundchutz_models::ItGrundschutzModuleRequirement;
 use actix_web::delete;
-use crate::service::risk_analysis_service::RiskTreatmentModel;
+use crate::service::risk_analysis_service::{RiskAssessmentUpdateModel, RiskTreatmentModel};
 use crate::service::security_measure_service::SecurityMeasure;
 use crate::service::risk_analysis_service::RiskClassificationUpdate;
 use crate::service::risk_analysis_service::RiskMatrix;
@@ -53,6 +54,9 @@ impl GeneralRoute for RiskAnalysisRoute {
                 .service(get_risk_classification)
                 .service(update_risk_classification)
                 .service(list_all_treatments)
+                .service(delete_module_risk_treatment)
+                .service(sync_module_risk_treatment)
+                .service(list_module_risk_treatment_measures)
         );
     }
 }
@@ -514,4 +518,110 @@ async fn list_all_treatments(
     let code = path.into_inner();
     let rows = RiskAnalysisService::list_all_treatments(&state.db, code).await?;
     Ok(Json(rows))
+}
+
+#[utoipa::path(
+    responses(
+        (status = 200, description = "Module risk treatment requirements", body = Vec<ItGrundschutzModuleRequirement>),
+        (status = 500, description = "Internal server error", body = ErrorResponse)
+    )
+)]
+#[get("/module-risk-treatment-measures/{code}/{module}")]
+async fn list_module_risk_treatment_measures(
+    state: web::Data<AppState>,
+    path: Path<(String, String)>,
+) -> ApiResult<Json<Vec<ItGrundschutzModuleRequirement>>> {
+    let (code, module) = path.into_inner();
+    let rows = RiskAnalysisService::list_risk_treatment_requirement_for_module(&state.db, code, module).await?;
+    Ok(Json(rows))
+}
+
+#[utoipa::path(
+    request_body = Vec<String>,
+    responses(
+        (status = 204, description = "Module risk treatment synced"),
+        (status = 500, description = "Internal server error", body = ErrorResponse)
+    )
+)]
+#[post("/sync-module-risk-treatment/{code}/{module}")]
+async fn sync_module_risk_treatment(
+    state: web::Data<AppState>,
+    path: Path<(String, String)>,
+    payload: Json<Vec<String>>,
+) -> ApiResult<actix_web::HttpResponse> {
+    let (code, module) = path.into_inner();
+    let mut tx = state.db.begin().await?;
+    RiskAnalysisService::sync_risk_treatment_requirement_for_module(
+        &mut tx, code, module, payload.into_inner(),
+    )
+        .await?;
+    tx.commit().await?;
+    Ok(actix_web::HttpResponse::NoContent().finish())
+}
+
+#[utoipa::path(
+    responses(
+        (status = 204, description = "Module risk treatment deleted"),
+        (status = 500, description = "Internal server error", body = ErrorResponse)
+    )
+)]
+#[delete("/module-risk-treatment/{code}/{module}")]
+async fn delete_module_risk_treatment(
+    state: web::Data<AppState>,
+    path: Path<(String, String)>,
+) -> ApiResult<actix_web::HttpResponse> {
+    let (code, module) = path.into_inner();
+    let mut tx = state.db.begin().await?;
+    RiskAnalysisService::delete_risk_treatment_requirement_for_module(
+        &mut tx, code, module,
+    )
+        .await?;
+    tx.commit().await?;
+    Ok(actix_web::HttpResponse::NoContent().finish())
+}
+
+#[utoipa::path(
+    responses(
+        (status = 204, description = "Security measure assessment updated"),
+        (status = 404, description = "Not found", body = ErrorResponse),
+        (status = 500, description = "Internal server error", body = ErrorResponse)
+    )
+)]
+#[post("/assessment/security-measure/{id}")]
+async fn update_security_measure_assessment(
+    state: web::Data<AppState>,
+    path: Path<uuid::Uuid>,
+    payload: Json<RiskAssessmentUpdateModel>,
+) -> ApiResult<actix_web::HttpResponse> {
+    let id = path.into_inner();
+    let mut tx = state.db.begin().await?;
+    RiskAnalysisService::update_security_measure_assessment(
+        &mut tx, id, payload.into_inner(),
+    )
+        .await?;
+    tx.commit().await?;
+    Ok(actix_web::HttpResponse::NoContent().finish())
+}
+
+#[utoipa::path(
+    responses(
+        (status = 204, description = "Requirement assessment updated"),
+        (status = 404, description = "Not found", body = ErrorResponse),
+        (status = 500, description = "Internal server error", body = ErrorResponse)
+    )
+)]
+#[post("/assessment/requirement/{id}")]
+async fn update_requirement_assessment(
+    state: web::Data<AppState>,
+    path: Path<uuid::Uuid>,
+    payload: Json<RiskAssessmentUpdateModel>,
+) -> ApiResult<actix_web::HttpResponse> {
+    let id = path.into_inner();
+    let mut tx = state.db.begin().await?;
+    RiskAnalysisService::update_requirement_assessment(
+        &mut tx, id, payload.into_inner(),
+    )
+        .await?;
+    tx.commit().await?;
+    Ok(actix_web::HttpResponse::NoContent().finish())
 }

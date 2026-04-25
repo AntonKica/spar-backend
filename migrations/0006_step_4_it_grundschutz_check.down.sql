@@ -1,0 +1,3 @@
+DROP TABLE risk_treatment_requirement_assessment;
+DROP TABLE risk_treatment_security_measure_assessment;
+DROP TYPE implementation_status;

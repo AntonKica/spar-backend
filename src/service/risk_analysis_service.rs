@@ -1,7 +1,8 @@
+use crate::enums::{ImplementationStatus, ProtectionRequirement};
 use crate::enums::{EnumMeta, Risk, RiskAnalysisState, RiskTreatmentType};
 use crate::enums::{Impact, Likelihood, ThreatCategory};
 use crate::model::asset_model::AssetModel;
-use crate::model::it_grundchutz_models::{ItGrundschutzModule, ThreatModel};
+use crate::model::it_grundchutz_models::{ItGrundschutzModule, ItGrundschutzModuleRequirement, ThreatModel};
 use crate::service::{ApiError, ApiResult};
 use sqlx::{FromRow, PgConnection, Pool, Postgres};
 use uuid::Uuid;
@@ -84,6 +85,12 @@ pub struct RiskTreatmentModel {
     pub threat: Option<String>,
     pub treatment: RiskTreatmentType,
     pub description: String,
+}
+
+#[derive(Debug, Clone, serde::Deserialize, utoipa::ToSchema)]
+pub struct RiskAssessmentUpdateModel {
+    pub status: ImplementationStatus,
+    pub evaluation: String,
 }
 
 pub struct RiskAnalysisService;
@@ -174,7 +181,17 @@ impl RiskAnalysisService {
         let rows = sqlx::query_as!(
             AssetModel,
             r#"
-            SELECT a.code, a.name, a.description, a.module
+            SELECT
+                a.code,
+                a.name,
+                a.description,
+                a.module,
+                a.confidentiality_protection_requirement AS "confidentiality_protection_requirement!: ProtectionRequirement",
+                a.integrity_protection_requirement AS "integrity_protection_requirement!: ProtectionRequirement",
+                a.availability_protection_requirement AS "availability_protection_requirement!: ProtectionRequirement",
+                a.confidentiality_protection_requirement_description,
+                a.integrity_protection_requirement_description,
+                a.availability_protection_requirement_description
             FROM asset a
             JOIN risk_analysis_asset raa ON raa.asset = a.code
             WHERE raa.risk_analysis = $1
@@ -433,8 +450,44 @@ impl RiskAnalysisService {
 
                 Ok(())
             }
-            RiskAnalysisState::RiskTreatment => Ok(()),
-            RiskAnalysisState::ItGrundshutzCheck => Ok(()),
+            RiskAnalysisState::RiskTreatment => {
+                sqlx::query!(
+                r#"
+                INSERT INTO risk_treatment_requirement_assessment
+                    (risk_analysis, risk_treatment, requirement)
+                SELECT
+                    rt.risk_analysis,
+                    rtr.risk_treatment,
+                    rtr.requirement
+                FROM risk_treatment_requirement rtr
+                JOIN risk_treatment rt ON rt.id = rtr.risk_treatment
+                WHERE rt.risk_analysis = $1
+                "#,
+                code,
+            )
+                    .execute(&mut *tx)
+                    .await?;
+
+                sqlx::query!(
+                r#"
+                INSERT INTO risk_treatment_security_measure_assessment
+                    (risk_analysis, risk_treatment, security_measure)
+                SELECT
+                    rt.risk_analysis,
+                    rtsm.risk_treatment,
+                    rtsm.security_measure
+                FROM risk_treatment_security_measure rtsm
+                JOIN risk_treatment rt ON rt.id = rtsm.risk_treatment
+                WHERE rt.risk_analysis = $1
+                "#,
+                code,
+            )
+                    .execute(&mut *tx)
+                    .await?;
+
+                Ok(())
+            },
+            RiskAnalysisState::ItGrundschutzCheck => Ok(()),
             RiskAnalysisState::Done => Ok(())
         }
     }
@@ -895,5 +948,155 @@ impl RiskAnalysisService {
             .await?;
 
         Ok(rows)
+    }
+
+    pub async fn list_risk_treatment_requirement_for_module(
+        db: &Pool<Postgres>,
+        code: String,
+        module: String,
+    ) -> ApiResult<Vec<ItGrundschutzModuleRequirement>> {
+        let rows = sqlx::query_as!(
+        ItGrundschutzModuleRequirement,
+        r#"
+        SELECT
+            r.code,
+            r.module,
+            r.description
+        FROM it_grundschutz_module_requirement r
+        JOIN risk_treatment_requirement rtr ON rtr.requirement = r.code
+        JOIN risk_treatment rt ON rt.id = rtr.risk_treatment
+        WHERE rt.risk_analysis = $1 AND rt.module = $2 AND rt.threat IS NULL
+        ORDER BY r.code
+        "#,
+        code,
+        module,
+    )
+            .fetch_all(db)
+            .await?;
+
+        Ok(rows)
+    }
+
+    pub async fn sync_risk_treatment_requirement_for_module(
+        tx: &mut PgConnection,
+        code: String,
+        module: String,
+        requirement_codes: Vec<String>,
+    ) -> ApiResult<()> {
+        sqlx::query!(
+            r#"
+            DELETE FROM risk_treatment
+            WHERE risk_analysis = $1 AND module = $2 AND threat IS NULL
+            "#,
+            code,
+            module,
+        )
+            .execute(&mut *tx)
+            .await?;
+
+        if requirement_codes.is_empty() {
+            return Ok(());
+        }
+
+        let treatment_id = sqlx::query_scalar!(
+            r#"
+            INSERT INTO risk_treatment (risk_analysis, module, treatment)
+            VALUES ($1, $2, 'reduce'::risk_treatment_type)
+            RETURNING id
+            "#,
+            code,
+            module,
+        )
+            .fetch_one(&mut *tx)
+            .await?;
+
+        for requirement_code in &requirement_codes {
+            sqlx::query!(
+                r#"
+                INSERT INTO risk_treatment_requirement (risk_treatment, requirement)
+                VALUES ($1, $2)
+                "#,
+                treatment_id,
+                requirement_code,
+            )
+                .execute(&mut *tx)
+                .await?;
+        }
+
+        Ok(())
+    }
+
+    pub async fn delete_risk_treatment_requirement_for_module(
+        tx: &mut PgConnection,
+        code: String,
+        module: String,
+    ) -> ApiResult<()> {
+        sqlx::query!(
+            r#"
+            DELETE FROM risk_treatment
+            WHERE risk_analysis = $1 AND module = $2 AND threat IS NULL
+            "#,
+            code,
+            module,
+        )
+            .execute(tx)
+            .await?;
+
+        Ok(())
+    }
+    pub async fn update_security_measure_assessment(
+        tx: &mut PgConnection,
+        id: uuid::Uuid,
+        update: RiskAssessmentUpdateModel,
+    ) -> ApiResult<()> {
+        let result = sqlx::query!(
+            r#"
+            UPDATE risk_treatment_security_measure_assessment
+            SET status = $1::implementation_status,
+                evaluation = $2
+            WHERE id = $3
+            "#,
+            update.status as ImplementationStatus,
+            update.evaluation,
+            id,
+        )
+            .execute(tx)
+            .await?;
+
+        if result.rows_affected() == 0 {
+            return Err(ApiError::NotFound(format!(
+                "Security measure assessment {id} not found"
+            )));
+        }
+
+        Ok(())
+    }
+
+    pub async fn update_requirement_assessment(
+        tx: &mut PgConnection,
+        id: uuid::Uuid,
+        update: RiskAssessmentUpdateModel,
+    ) -> ApiResult<()> {
+        let result = sqlx::query!(
+            r#"
+            UPDATE risk_treatment_requirement_assessment
+            SET status = $1::implementation_status,
+                evaluation = $2
+            WHERE id = $3
+            "#,
+            update.status as ImplementationStatus,
+            update.evaluation,
+            id,
+        )
+            .execute(tx)
+            .await?;
+
+        if result.rows_affected() == 0 {
+            return Err(ApiError::NotFound(format!(
+                "Requirement assessment {id} not found"
+            )));
+        }
+
+        Ok(())
     }
 }

@@ -1,4 +1,4 @@
-use crate::enums::{Risk, RiskTreatmentType};
+use crate::enums::{ImplementationStatus, ProtectionRequirement, Risk, RiskTreatmentType};
 use strum::IntoEnumIterator;
 use crate::service::ErrorResponse;
 use actix_web::web::Json;
@@ -25,12 +25,14 @@ use crate::enums::step_4_risk_treatment_enums::{RiskTransferType, RiskTreatmentT
 
 #[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
 struct EnumResponse {
+    protection_requirement: Vec<EnumCodeName>,
     risk_analysis_state: Vec<EnumCodeName>,
     threat_category: Vec<EnumCodeName>,
     likelihood: Vec<EnumCodeName>,
     impact: Vec<EnumCodeName>,
     risk: Vec<EnumCodeName>,
     treatment_type: Vec<EnumCodeName>,
+    implementation_status: Vec<EnumCodeName>,
 }
 pub struct EnumRoute {}
 
@@ -52,12 +54,14 @@ impl GeneralRoute for EnumRoute {
 async fn list() -> ApiResult<Json<EnumResponse>> {
     Ok(Json(
         EnumResponse {
+            protection_requirement: ProtectionRequirement::iter().map(EnumCodeName::from).collect(),
             risk_analysis_state: RiskAnalysisState::iter().map(EnumCodeName::from).collect(),
             threat_category: ThreatCategory::iter().map(EnumCodeName::from).collect(),
             likelihood: Likelihood::iter().map(EnumCodeName::from).collect(),
             impact: Impact::iter().map(EnumCodeName::from).collect(),
             risk: Risk::iter().map(EnumCodeName::from).collect(),
             treatment_type: RiskTreatmentType::iter().map(EnumCodeName::from).collect(),
+            implementation_status: ImplementationStatus::iter().map(EnumCodeName::from).collect(),
             /*
             protection_needs: ProtectionNeeds::iter().map(EnumCodeName::from).collect(),
             threat_probability: ThreatProbability::iter().map(EnumCodeName::from).collect(),

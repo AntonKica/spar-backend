@@ -1,6 +1,5 @@
 CREATE SEQUENCE risk_analysis_code_seq;
 CREATE TYPE risk_analysis_state AS ENUM ('threat_identification', 'risk_classification', 'risk_treatment', 'it_grundschutz_check', 'done');
-
 CREATE TABLE risk_analysis
 (
     code       CHAR(6)      NOT NULL PRIMARY KEY DEFAULT 'RA-' || LPAD(nextval('risk_analysis_code_seq')::TEXT, 3, '0'),

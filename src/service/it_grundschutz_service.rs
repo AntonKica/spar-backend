@@ -1,5 +1,5 @@
 use crate::enums::ThreatCategory;
-use crate::model::it_grundchutz_models::ThreatModel;
+use crate::model::it_grundchutz_models::{ItGrundschutzModuleRequirement, ThreatModel};
 use crate::service::ApiResult;
 use actix_web::{get, web, web::Json, web::Path};
 use sqlx::{Pool, Postgres};
@@ -25,6 +25,25 @@ impl ItGrundschutzService {
             FROM threat t
             JOIN it_grundschutz_module_threat mt ON mt.threat = t.code
             WHERE mt.it_grundschutz_module = $1
+            "#,
+            module_code,
+        )
+            .fetch_all(db)
+            .await?;
+
+        Ok(rows)
+    }
+    pub async fn requirements_by_module(
+        db: &Pool<Postgres>,
+        module_code: String,
+    ) -> ApiResult<Vec<ItGrundschutzModuleRequirement>> {
+        let rows = sqlx::query_as!(
+            ItGrundschutzModuleRequirement,
+            r#"
+            SELECT code, module, description
+            FROM it_grundschutz_module_requirement
+            WHERE module = $1
+            ORDER BY code
             "#,
             module_code,
         )

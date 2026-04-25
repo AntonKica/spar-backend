@@ -55,6 +55,36 @@ where
     }
 }
 
+#[derive(Debug, Clone, Copy, EnumIter, PartialEq, sqlx::Type, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
+#[sqlx(type_name = "protection_requirement", rename_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
+pub enum ProtectionRequirement {
+    Low,
+    Medium,
+    High,
+    VeryHigh,
+}
+
+impl EnumMeta for ProtectionRequirement {
+    fn code(&self) -> &'static str {
+        match self {
+            ProtectionRequirement::Low => "low",
+            ProtectionRequirement::Medium => "medium",
+            ProtectionRequirement::High => "high",
+            ProtectionRequirement::VeryHigh => "very_high",
+        }
+    }
+
+    fn display_name(&self) -> &'static str {
+        match self {
+            ProtectionRequirement::Low => "nízka",
+            ProtectionRequirement::Medium => "stredná",
+            ProtectionRequirement::High => "vysoká",
+            ProtectionRequirement::VeryHigh => "veľmi vysoká",
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, EnumIter, sqlx::Type, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
 #[sqlx(type_name = "risk_analysis_state", rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
@@ -62,7 +92,7 @@ pub enum RiskAnalysisState {
     ThreatIdentification,
     RiskClassification,
     RiskTreatment,
-    ItGrundshutzCheck,
+    ItGrundschutzCheck,
     Done,
 }
 
@@ -71,9 +101,9 @@ impl RiskAnalysisState {
         match self {
             Self::ThreatIdentification => Some(Self::RiskClassification),
             Self::RiskClassification => Some(Self::RiskTreatment),
-            RiskAnalysisState::RiskTreatment => Some(Self::ItGrundshutzCheck),
-            RiskAnalysisState::ItGrundshutzCheck => Some(Self::ItGrundshutzCheck),
-            RiskAnalysisState::Done => None
+            Self::RiskTreatment => Some(Self::ItGrundschutzCheck),
+            Self::ItGrundschutzCheck => Some(Self::Done),
+            Self::Done => None
         }
     }
 }
@@ -84,7 +114,7 @@ impl EnumMeta for RiskAnalysisState {
             RiskAnalysisState::ThreatIdentification => "threat_identification",
             RiskAnalysisState::RiskClassification => "risk_classification",
             RiskAnalysisState::RiskTreatment => "risk_treatment",
-            RiskAnalysisState::ItGrundshutzCheck => "it_grundschutz_check",
+            RiskAnalysisState::ItGrundschutzCheck => "it_grundschutz_check",
             RiskAnalysisState::Done => "done"
         }
     }
@@ -94,7 +124,7 @@ impl EnumMeta for RiskAnalysisState {
             RiskAnalysisState::ThreatIdentification => "identifikácia hrozieb",
             RiskAnalysisState::RiskClassification => "klasifikácia rizík",
             RiskAnalysisState::RiskTreatment => "ošetrenie rizík",
-            RiskAnalysisState::ItGrundshutzCheck => "it grundschutz check",
+            RiskAnalysisState::ItGrundschutzCheck => "it grundschutz check",
             RiskAnalysisState::Done => "ukončené"
         }
     }
@@ -151,6 +181,17 @@ pub enum RiskTreatmentType {
     Reduce,
     Transfer,
     Accept,
+}
+
+#[derive(Debug, Clone, Copy, EnumIter, PartialEq, sqlx::Type, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
+#[sqlx(type_name = "implementation_status", rename_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
+pub enum ImplementationStatus {
+    NotAssessed,
+    None,
+    Partial,
+    Full,
+    Redundant,
 }
 
 impl EnumMeta for ThreatCategory {
@@ -283,3 +324,24 @@ impl EnumMeta for RiskTreatmentType {
     }
 }
 
+impl EnumMeta for ImplementationStatus {
+    fn code(&self) -> &'static str {
+        match self {
+            ImplementationStatus::NotAssessed => "not_assessed",
+            ImplementationStatus::None => "none",
+            ImplementationStatus::Partial => "partial",
+            ImplementationStatus::Full => "full",
+            ImplementationStatus::Redundant => "redundant",
+        }
+    }
+
+    fn display_name(&self) -> &'static str {
+        match self {
+            ImplementationStatus::NotAssessed => "nehodnotené",
+            ImplementationStatus::None => "neimplementované",
+            ImplementationStatus::Partial => "čiastočne",
+            ImplementationStatus::Full => "úplne",
+            ImplementationStatus::Redundant => "nadbytočné",
+        }
+    }
+}

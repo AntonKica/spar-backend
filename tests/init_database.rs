@@ -1,38 +1,63 @@
 use sqlx::PgConnection;
 use spar_backend::configuration::AppConfig;
 use spar_backend::create_connection;
-use spar_backend::enums::{Impact, Likelihood, RiskAnalysisState, RiskTreatmentType};
-use spar_backend::model::asset_model::AssetModelCreate;
+use spar_backend::enums::{Impact, Likelihood, ProtectionRequirement, RiskAnalysisState, RiskTreatmentType};
+use spar_backend::model::asset_model::AssetCreateModel;
 use spar_backend::service::asset_service::AssetService;
 use spar_backend::service::{ApiResult, GeneralService};
 use spar_backend::service::risk_analysis_service::{RiskAnalysisService, RiskClassificationUpdate};
 use spar_backend::service::security_measure_service::{SecurityMeasureCreate, SecurityMeasureService};
 
 async fn clear_database(tx: &mut PgConnection) {
-    sqlx::query(r#"DELETE FROM risk_treatment"#).execute(&mut *tx).await.unwrap();
-    sqlx::query(r#"DELETE FROM security_measure"#).execute(&mut *tx).await.unwrap();
-    sqlx::query(r#"DELETE FROM risk_analysis_threat"#).execute(&mut *tx).await.unwrap();
-    sqlx::query(r#"DELETE FROM risk_analysis_asset"#).execute(&mut *tx).await.unwrap();
-    sqlx::query(r#"DELETE FROM risk_analysis"#).execute(&mut *tx).await.unwrap();
-    sqlx::query(r#"DELETE FROM asset"#).execute(&mut *tx).await.unwrap();
+    sqlx::query(r#"TRUNCATE TABLE risk_treatment CASCADE"#).execute(&mut *tx).await.unwrap();
+    sqlx::query(r#"TRUNCATE TABLE security_measure CASCADE "#).execute(&mut *tx).await.unwrap();
+    sqlx::query(r#"TRUNCATE TABLE risk_analysis_threat CASCADE "#).execute(&mut *tx).await.unwrap();
+    sqlx::query(r#"TRUNCATE TABLE risk_analysis_asset CASCADE "#).execute(&mut *tx).await.unwrap();
+    sqlx::query(r#"TRUNCATE TABLE risk_analysis CASCADE "#).execute(&mut *tx).await.unwrap();
+    sqlx::query(r#"TRUNCATE TABLE asset CASCADE"#).execute(&mut *tx).await.unwrap();
+
+    sqlx::query(r#"ALTER SEQUENCE asset_code_seq RESTART"#).execute(&mut *tx).await.unwrap();
+    sqlx::query(r#"ALTER SEQUENCE risk_analysis_code_seq RESTART"#).execute(&mut *tx).await.unwrap();
+    sqlx::query(r#"ALTER SEQUENCE security_measure_avd_seq RESTART"#).execute(&mut *tx).await.unwrap();
+    sqlx::query(r#"ALTER SEQUENCE security_measure_red_seq RESTART"#).execute(&mut *tx).await.unwrap();
+    sqlx::query(r#"ALTER SEQUENCE security_measure_tsf_seq RESTART"#).execute(&mut *tx).await.unwrap();
+    sqlx::query(r#"ALTER SEQUENCE security_measure_acp_seq RESTART"#).execute(&mut *tx).await.unwrap();
 }
 
 async fn create_assets(tx: &mut PgConnection) {
-    let workplace_laptop = AssetService::create(&mut *tx, AssetModelCreate {
+    let workplace_laptop = AssetService::create(&mut *tx, AssetCreateModel {
         name: "Workplace laptop".to_string(),
         description: "General laptop for employees enabling remote work".to_string(),
         module: "SYS-3-1".to_string(),
+        confidentiality_protection_requirement: ProtectionRequirement::High,
+        integrity_protection_requirement: ProtectionRequirement::Low,
+        availability_protection_requirement: ProtectionRequirement::High,
+        confidentiality_protection_requirement_description: "Provides an access to confidential information data and systems.".to_string(),
+        integrity_protection_requirement_description: "".to_string(),
+        availability_protection_requirement_description: "High availability is integral to a timely reaction.".to_string(),
     }).await.unwrap();
-    let admin_laptop = AssetService::create(&mut *tx, AssetModelCreate {
+    let admin_laptop = AssetService::create(&mut *tx, AssetCreateModel {
         name: "Administrator Laptop".to_string(),
         description: "Administrator laptop for server admins for remote server management".to_string(),
         module: "SYS-3-1".to_string(),
+        confidentiality_protection_requirement: ProtectionRequirement::VeryHigh,
+        integrity_protection_requirement: ProtectionRequirement::Low,
+        availability_protection_requirement: ProtectionRequirement::VeryHigh,
+        confidentiality_protection_requirement_description: "Provides an administrative access to confidential information data and systems.".to_string(),
+        integrity_protection_requirement_description: "".to_string(),
+        availability_protection_requirement_description: "Very high availability is integral for a quick response.".to_string(),
     }).await.unwrap();
 
-    let employees = AssetService::create(&mut *tx, AssetModelCreate {
+    let employees = AssetService::create(&mut *tx, AssetCreateModel {
         name: "All the employees".to_string(),
         description: "All the employees of our organization".to_string(),
         module: "ORP-2".to_string(),
+        confidentiality_protection_requirement: ProtectionRequirement::High,
+        integrity_protection_requirement: ProtectionRequirement::Low,
+        availability_protection_requirement: ProtectionRequirement::High,
+        confidentiality_protection_requirement_description: "Emplyees are in possession of high-value know-how information.".to_string(),
+        integrity_protection_requirement_description: "".to_string(),
+        availability_protection_requirement_description: "Availability of employees is necessary for a timely reaction.".to_string(),
     }).await.unwrap();
 }
 
@@ -48,6 +73,7 @@ async fn create_scenarios() {
     create_scenario_threat_identification(&mut *tx).await;
     create_scenario_risk_classification(&mut *tx).await;
     create_scenario_risk_treatment(&mut *tx).await;
+    create_scenario_it_grundschutz_check(&mut *tx).await;
 
     tx.commit().await.unwrap();
 }
@@ -57,10 +83,13 @@ async fn create_scenario_threat_identification(tx: &mut PgConnection) -> String 
     RiskAnalysisService::sync_threats(&mut *tx, ra.clone(), "SYS-3-1".to_string(), vec!["G-04".to_string(), "G-14".to_string(), "G-25".to_string(), "G-26".to_string()]).await.unwrap();
     RiskAnalysisService::sync_threats(&mut *tx, ra.clone(), "ORP-2".to_string(), vec!["G-04".to_string(), "G-14".to_string(), "G-33".to_string()]).await.unwrap();
 
+    RiskAnalysisService::set_module_threat_identification_done(&mut *tx, ra.clone(), "SYS-3-1".to_string()).await.unwrap();
+    RiskAnalysisService::set_module_threat_identification_done(&mut *tx, ra.clone(), "ORP-2".to_string()).await.unwrap();
+
     ra
 }
 
-async fn create_scenario_risk_classification(tx: &mut PgConnection) -> String{
+async fn create_scenario_risk_classification(tx: &mut PgConnection) -> String {
     let ra = create_scenario_threat_identification(&mut *tx).await;
     RiskAnalysisService::complete_step(&mut *tx, ra.clone(), RiskAnalysisState::ThreatIdentification).await.unwrap();
     RiskAnalysisService::update_risk_classification(&mut *tx, ra.clone(), "SYS-3-1".to_string(), "G-04".to_string(), RiskClassificationUpdate{likelihood: Likelihood::Often, impact: Impact::Limited, evaluation: "".to_string() }).await.unwrap();
@@ -73,7 +102,7 @@ async fn create_scenario_risk_classification(tx: &mut PgConnection) -> String{
     ra
 }
 
-async fn create_scenario_risk_treatment(tx: &mut PgConnection) {
+async fn create_scenario_risk_treatment(tx: &mut PgConnection) -> String {
     let ra = create_scenario_risk_classification(&mut *tx).await;
     RiskAnalysisService::complete_step(&mut *tx, ra.clone(), RiskAnalysisState::RiskClassification).await.unwrap();
 
@@ -115,4 +144,14 @@ async fn create_scenario_risk_treatment(tx: &mut PgConnection) {
         description: "The employees will enroll in yearly security training workshops.".to_string(),
     }).await.unwrap();
     RiskAnalysisService::sync_org_risk_treatment(&mut *tx, ra.clone(), vec![treatment_guidelines, treatment_training]).await.unwrap();
+
+    ra
+}
+
+
+async fn create_scenario_it_grundschutz_check(tx: &mut PgConnection) -> String {
+    let ra = create_scenario_risk_treatment(&mut *tx).await;
+    RiskAnalysisService::complete_step(&mut *tx, ra.clone(), RiskAnalysisState::RiskTreatment).await.unwrap();
+
+    ra
 }

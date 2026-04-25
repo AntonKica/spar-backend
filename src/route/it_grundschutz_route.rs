@@ -1,3 +1,4 @@
+use crate::model::it_grundchutz_models::ItGrundschutzModuleRequirement;
 use crate::model::it_grundchutz_models::ThreatModel;
 use crate::configuration::AppState;
 use actix_web::get;
@@ -16,7 +17,8 @@ impl GeneralRoute for ItGrundschutzRoute {
     fn configure(cfg: &mut ServiceConfig) {
         cfg.service(
             scope("/it-grundschutz")
-                .service(threats_by_module),
+                .service(threats_by_module)
+                .service(requirements_by_module)
         );
     }
 }
@@ -34,4 +36,20 @@ async fn threats_by_module(
     let code = path.into_inner();
     let threats = ItGrundschutzService::threats_by_module(&state.db, code).await?;
     Ok(Json(threats))
+}
+
+#[utoipa::path(
+    responses(
+        (status = 200, description = "Requirements for the given module", body = Vec<ItGrundschutzModuleRequirement>),
+        (status = 500, description = "Internal server error", body = ErrorResponse)
+    )
+)]
+#[get("/module/{code}/requirements")]
+async fn requirements_by_module(
+    state: web::Data<AppState>,
+    path: Path<String>,
+) -> ApiResult<Json<Vec<ItGrundschutzModuleRequirement>>> {
+    let code = path.into_inner();
+    let requirements = ItGrundschutzService::requirements_by_module(&state.db, code).await?;
+    Ok(Json(requirements))
 }

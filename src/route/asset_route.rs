@@ -1,15 +1,13 @@
+use crate::model::CreatedCode;
 use crate::model::it_grundchutz_models::ItGrundschutzModule;
 use crate::configuration::AppState;
 use crate::service::ErrorResponse;
 use crate::service::ApiError;
 use actix_web::web::Path;
 use utoipa_actix_web::service_config::ServiceConfig;
-use crate::model::asset_model::{AssetModel, AssetModelDetail};
+use crate::model::asset_model::{AssetModel, AssetDetailModel, AssetCreateModel};
 use crate::service::GeneralService;
-use sqlx::Postgres;
-use sqlx::Pool;
 use crate::service::asset_service::AssetService;
-use crate::model::asset_model::AssetModelCreate;
 use crate::service::ApiResult;
 use actix_web::{get, post, web};
 use crate::route::GeneralRoute;
@@ -40,11 +38,6 @@ async fn list_asset(state: web::Data<AppState>) -> ApiResult<Json<Vec<AssetModel
     let assets = AssetService::list(&state.db).await?;
     Ok(Json(assets))
 }
-#[derive(serde::Serialize, utoipa::ToSchema)]
-pub struct CreatedCode {
-    pub code: String,
-}
-
 #[utoipa::path(
     responses(
         (status = 201, description = "Asset created", body = CreatedCode),
@@ -54,7 +47,7 @@ pub struct CreatedCode {
 )]#[post("")]
 async fn create_asset(
     state: web::Data<AppState>,
-    payload: Json<AssetModelCreate>,
+    payload: Json<AssetCreateModel>,
 ) -> ApiResult<Json<CreatedCode>> {
     let mut tx = state.db.acquire().await?;
     let code = AssetService::create(&mut tx, payload.into_inner()).await?;
@@ -62,7 +55,7 @@ async fn create_asset(
 }
 #[utoipa::path(
     responses(
-        (status = 200, description = "Asset detail", body = AssetModelDetail),
+        (status = 200, description = "Asset detail", body = AssetDetailModel),
         (status = 404, description = "Asset not found", body = ErrorResponse),
         (status = 500, description = "Internal server error", body = ErrorResponse)
     )
@@ -71,7 +64,7 @@ async fn create_asset(
 async fn detail_asset(
     state: web::Data<AppState>,
     path: Path<String>,
-) -> ApiResult<Json<AssetModelDetail>> {
+) -> ApiResult<Json<AssetDetailModel>> {
     let code = path.into_inner();
     let asset = AssetService::detail(&state.db, code.clone()).await?;
     asset
