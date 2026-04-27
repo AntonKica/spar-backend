@@ -55,9 +55,10 @@ pub struct FullAssessment {
 pub struct ItGrundschutCheckService;
 impl ItGrundschutCheckService {
     pub async fn full_assessment(
-        db: &sqlx::Pool<sqlx::Postgres>,
+        conn: impl sqlx::Acquire<'_, Database = sqlx::Postgres>,
         code: String,
     ) -> ApiResult<FullAssessment> {
+        let mut conn = conn.acquire().await?;
         let treatments = sqlx::query_as!(
             RiskTreatmentModel,
             r#"
@@ -74,7 +75,7 @@ impl ItGrundschutCheckService {
             "#,
             code,
         )
-            .fetch_all(db)
+            .fetch_all(&mut *conn)
             .await?;
 
         let req_assessments = sqlx::query!(
@@ -93,7 +94,7 @@ impl ItGrundschutCheckService {
             "#,
             code,
         )
-            .fetch_all(db)
+            .fetch_all(&mut *conn)
             .await?;
 
         let sm_assessments = sqlx::query!(
@@ -112,7 +113,7 @@ impl ItGrundschutCheckService {
             "#,
             code,
         )
-            .fetch_all(db)
+            .fetch_all(&mut *conn)
             .await?;
 
         let threat_names: std::collections::HashMap<String, String> = sqlx::query!(
@@ -120,7 +121,7 @@ impl ItGrundschutCheckService {
             SELECT code, name FROM threat
             "#
         )
-            .fetch_all(db)
+            .fetch_all(&mut *conn)
             .await?
             .into_iter()
             .map(|r| (r.code, r.name))
@@ -131,7 +132,7 @@ impl ItGrundschutCheckService {
             SELECT code, name FROM it_grundschutz_module
             "#
         )
-            .fetch_all(db)
+            .fetch_all(&mut *conn)
             .await?
             .into_iter()
             .map(|r| (r.code, r.name))
@@ -213,7 +214,7 @@ impl ItGrundschutCheckService {
             module_threats,
         })
     }
-    
+
     pub async fn update_security_measure_assessment(
         tx: &mut PgConnection,
         id: uuid::Uuid,

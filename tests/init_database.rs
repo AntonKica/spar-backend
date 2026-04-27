@@ -1,11 +1,12 @@
 use sqlx::PgConnection;
 use spar_backend::configuration::AppConfig;
 use spar_backend::create_connection;
-use spar_backend::enums::{Impact, Likelihood, ProtectionRequirement, RiskAnalysisState, RiskTreatmentType};
+use spar_backend::enums::{Impact, ImplementationStatus, Likelihood, ProtectionRequirement, RiskAnalysisState, RiskTreatmentType};
 use spar_backend::model::asset_model::AssetCreateModel;
 use spar_backend::service::asset_service::AssetService;
 use spar_backend::service::{ApiResult, GeneralService};
-use spar_backend::service::risk_analysis_service::{RiskAnalysisService, RiskClassificationUpdate};
+use spar_backend::service::it_grundschutz_check_service::ItGrundschutCheckService;
+use spar_backend::service::risk_analysis_service::{RiskAnalysisService, RiskAssessmentUpdateModel, RiskClassificationUpdate};
 use spar_backend::service::security_measure_service::{SecurityMeasureCreate, SecurityMeasureService};
 
 async fn clear_database(tx: &mut PgConnection) {
@@ -74,6 +75,7 @@ async fn create_scenarios() {
     create_scenario_risk_classification(&mut *tx).await;
     create_scenario_risk_treatment(&mut *tx).await;
     create_scenario_it_grundschutz_check(&mut *tx).await;
+    create_scenario_completed(&mut *tx).await;
 
     tx.commit().await.unwrap();
 }
@@ -154,6 +156,41 @@ async fn create_scenario_risk_treatment(tx: &mut PgConnection) -> String {
 async fn create_scenario_it_grundschutz_check(tx: &mut PgConnection) -> String {
     let ra = create_scenario_risk_treatment(&mut *tx).await;
     RiskAnalysisService::complete_step(&mut *tx, ra.clone(), RiskAnalysisState::RiskTreatment).await.unwrap();
+
+    let full_assessment = ItGrundschutCheckService::full_assessment(&mut *tx, ra.clone()).await.unwrap();
+
+    ItGrundschutCheckService::update_security_measure_assessment(&mut *tx, full_assessment.org.as_ref().unwrap().items[0].id,
+                                                                 RiskAssessmentUpdateModel{
+                                                                     status: ImplementationStatus::Full,
+                                                                     evaluation: "The security guidelines material are now accessible to every employee.".to_string()
+                                                                 }).await.unwrap();
+    ItGrundschutCheckService::update_security_measure_assessment(&mut *tx, full_assessment.org.as_ref().unwrap().items[1].id,
+                                                                 RiskAssessmentUpdateModel{
+                                                                     status: ImplementationStatus::None,
+                                                                     evaluation: "We have failed in search of an expert in security training.".to_string()
+                                                                 }).await.unwrap();
+
+    ItGrundschutCheckService::update_security_measure_assessment(&mut *tx, full_assessment.threats[0].items[0].id,
+                                                                 RiskAssessmentUpdateModel{
+                                                                     status: ImplementationStatus::Partial,
+                                                                     evaluation: "We have failed in search of an expert in security training.".to_string()
+                                                                 }).await.unwrap();
+
+    ItGrundschutCheckService::update_requirement_assessment(&mut *tx, full_assessment.modules[0].items[0].id, RiskAssessmentUpdateModel{ status: ImplementationStatus::Full, evaluation: "".to_string() }).await.unwrap();
+    ItGrundschutCheckService::update_requirement_assessment(&mut *tx, full_assessment.modules[0].items[1].id, RiskAssessmentUpdateModel{ status: ImplementationStatus::Redundant, evaluation: "".to_string() }).await.unwrap();
+    ItGrundschutCheckService::update_requirement_assessment(&mut *tx, full_assessment.modules[1].items[0].id, RiskAssessmentUpdateModel{ status: ImplementationStatus::Full, evaluation: "".to_string() }).await.unwrap();
+    ItGrundschutCheckService::update_requirement_assessment(&mut *tx, full_assessment.modules[1].items[1].id, RiskAssessmentUpdateModel{ status: ImplementationStatus::Redundant, evaluation: "".to_string() }).await.unwrap();
+    ItGrundschutCheckService::update_security_measure_assessment(&mut *tx, full_assessment.module_threats[0].items[0].id, RiskAssessmentUpdateModel{ status: ImplementationStatus::Full, evaluation: "".to_string() }).await.unwrap();
+    ItGrundschutCheckService::update_security_measure_assessment(&mut *tx, full_assessment.module_threats[1].items[0].id, RiskAssessmentUpdateModel{ status: ImplementationStatus::Full, evaluation: "".to_string() }).await.unwrap();
+    ItGrundschutCheckService::update_security_measure_assessment(&mut *tx, full_assessment.module_threats[2].items[0].id, RiskAssessmentUpdateModel{ status: ImplementationStatus::Full, evaluation: "".to_string() }).await.unwrap();
+    ItGrundschutCheckService::update_security_measure_assessment(&mut *tx, full_assessment.module_threats[2].items[1].id, RiskAssessmentUpdateModel{ status: ImplementationStatus::Redundant, evaluation: "".to_string() }).await.unwrap();
+
+    ra
+}
+
+async fn create_scenario_completed(tx: &mut PgConnection) -> String {
+    let ra = create_scenario_it_grundschutz_check(&mut *tx).await;
+    RiskAnalysisService::complete_step(&mut *tx, ra.clone(), RiskAnalysisState::ItGrundschutzCheck).await.unwrap();
 
     ra
 }
