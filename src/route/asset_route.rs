@@ -1,3 +1,4 @@
+use actix_web::delete;
 use crate::model::CreatedCode;
 use crate::model::it_grundchutz_models::ItGrundschutzModule;
 use crate::configuration::AppState;
@@ -24,6 +25,7 @@ impl GeneralRoute for AssetRoute {
                 .service(list_asset)
                 .service(create_asset)
                 .service(detail_asset)
+                .service(delete_asset)
         );
     }
 }
@@ -84,4 +86,22 @@ async fn list_asset_modules(
 ) -> ApiResult<Json<Vec<ItGrundschutzModule>>> {
     let modules = AssetService::distinct_modules(&state.db).await?;
     Ok(Json(modules))
+}
+
+#[utoipa::path(
+    responses(
+        (status = 204, description = "Asset deleted"),
+        (status = 404, description = "Asset not found", body = ErrorResponse),
+        (status = 500, description = "Internal server error", body = ErrorResponse)
+    )
+)]
+#[delete("/{code}")]
+async fn delete_asset(
+    state: web::Data<AppState>,
+    path: Path<String>,
+) -> ApiResult<actix_web::HttpResponse> {
+    let code = path.into_inner();
+    let mut tx = state.db.acquire().await?;
+    AssetService::delete(&mut tx, code).await?;
+    Ok(actix_web::HttpResponse::NoContent().finish())
 }

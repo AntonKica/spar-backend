@@ -144,4 +144,18 @@ impl AssetService {
 
         Ok(rows)
     }
+    pub async fn delete(tx: &mut PgConnection, code: String) -> ApiResult<()> {
+        let result = sqlx::query!(
+            r#"DELETE FROM asset WHERE code = $1"#,
+            code,
+        )
+            .execute(tx)
+            .await?;
+
+        if result.rows_affected() == 0 {
+            return Err(ApiError::NotFound(format!("Asset {code} not found")));
+        }
+
+        Ok(())
+    }
 }
