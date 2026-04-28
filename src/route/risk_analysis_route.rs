@@ -57,6 +57,7 @@ impl GeneralRoute for RiskAnalysisRoute {
                 .service(delete_module_risk_treatment)
                 .service(sync_module_risk_treatment)
                 .service(list_module_risk_treatment_measures)
+                .service(copy_step)
         );
     }
 }
@@ -577,5 +578,32 @@ async fn delete_module_risk_treatment(
     )
         .await?;
     tx.commit().await?;
+    Ok(actix_web::HttpResponse::NoContent().finish())
+}
+
+#[utoipa::path(
+    responses(
+        (status = 204, description = "Step copied"),
+        (status = 400, description = "Invalid state", body = ErrorResponse),
+        (status = 404, description = "Risk analysis not found", body = ErrorResponse),
+        (status = 500, description = "Internal server error", body = ErrorResponse)
+    )
+)]
+#[post("/copy-step/{src_code}/{state}/{dst_code}")]
+async fn copy_step(
+    state: web::Data<AppState>,
+    path: Path<(String, String, String)>,
+) -> ApiResult<actix_web::HttpResponse> {
+    let (src_code, state_str, dst_code) = path.into_inner();
+
+    let ra_state: RiskAnalysisState = serde_json::from_value(
+        serde_json::Value::String(state_str),
+    )
+        .map_err(|_| ApiError::Validation("Invalid state".to_string()))?;
+
+    let mut tx = state.db.begin().await?;
+    RiskAnalysisService::copy_step(&mut tx, src_code, ra_state, dst_code).await?;
+    tx.commit().await?;
+
     Ok(actix_web::HttpResponse::NoContent().finish())
 }

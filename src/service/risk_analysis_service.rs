@@ -1044,4 +1044,225 @@ impl RiskAnalysisService {
 
         Ok(())
     }
+    pub async fn copy_step(
+        tx: &mut PgConnection,
+        src_code: String,
+        state: RiskAnalysisState,
+        dst_code: String,
+    ) -> ApiResult<()> {
+        match state {
+            RiskAnalysisState::ThreatIdentification => {
+                Self::copy_threat_identification(&mut *tx, &src_code, &dst_code).await
+            }
+            RiskAnalysisState::RiskClassification => {
+                Self::copy_risk_classification(&mut *tx, &src_code, &dst_code).await
+            }
+            RiskAnalysisState::RiskTreatment => {
+                Self::copy_risk_treatment(&mut *tx, &src_code, &dst_code).await
+            }
+            RiskAnalysisState::ItGrundschutzCheck => Ok(()),
+            RiskAnalysisState::Done => Ok(())
+        }
+    }
+
+    async fn copy_threat_identification(
+        tx: &mut PgConnection,
+        src: &str,
+        dst: &str,
+    ) -> ApiResult<()> {
+        sqlx::query!(
+            r#"DELETE FROM risk_analysis_threat WHERE risk_analysis = $1"#,
+            dst,
+        )
+            .execute(&mut *tx)
+            .await?;
+
+        sqlx::query!(
+            r#"
+            INSERT INTO risk_analysis_threat (risk_analysis, module, threat, stage)
+            SELECT $2, rat.module, rat.threat, rat.stage
+            FROM risk_analysis_threat rat
+            JOIN risk_analysis_module ram ON ram.risk_analysis = $2 AND ram.module = rat.module
+            WHERE rat.risk_analysis = $1
+            "#,
+            src,
+            dst,
+        )
+            .execute(&mut *tx)
+            .await?;
+
+        sqlx::query!(
+            r#"
+            UPDATE module_threat_identification_status
+            SET done = TRUE
+            WHERE risk_analysis = $1
+              AND module IN (
+                  SELECT DISTINCT module FROM risk_analysis_threat WHERE risk_analysis = $1
+              )
+            "#,
+            dst,
+        )
+            .execute(&mut *tx)
+            .await?;
+
+        Ok(())
+    }
+
+    async fn copy_risk_classification(
+        tx: &mut PgConnection,
+        src: &str,
+        dst: &str,
+    ) -> ApiResult<()> {
+        sqlx::query!(
+            r#"DELETE FROM risk_classification WHERE risk_analysis = $1"#,
+            dst,
+        )
+            .execute(&mut *tx)
+            .await?;
+
+        sqlx::query!(
+            r#"
+            INSERT INTO risk_classification (risk_analysis, module, threat, likelihood, impact, evaluation)
+            SELECT $2, rc.module, rc.threat, rc.likelihood, rc.impact, rc.evaluation
+            FROM risk_classification rc
+            JOIN risk_analysis_threat rat ON rat.risk_analysis = $2 AND rat.module = rc.module AND rat.threat = rc.threat
+            WHERE rc.risk_analysis = $1
+            "#,
+            src,
+            dst,
+        )
+            .execute(&mut *tx)
+            .await?;
+
+        Ok(())
+    }
+
+    async fn copy_risk_treatment(
+        tx: &mut PgConnection,
+        src: &str,
+        dst: &str,
+    ) -> ApiResult<()> {
+        sqlx::query!(
+            r#"DELETE FROM risk_treatment WHERE risk_analysis = $1"#,
+            dst,
+        )
+            .execute(&mut *tx)
+            .await?;
+
+        let src_treatments = sqlx::query!(
+            r#"
+            SELECT
+                id,
+                module,
+                threat,
+                treatment AS "treatment!: RiskTreatmentType",
+                description
+            FROM risk_treatment
+            WHERE risk_analysis = $1
+            "#,
+            src,
+        )
+            .fetch_all(&mut *tx)
+            .await?;
+
+        for t in &src_treatments {
+            let skip = match (&t.module, &t.threat) {
+                (Some(module), Some(threat)) => {
+                    sqlx::query_scalar!(
+                        r#"
+                        SELECT EXISTS(
+                            SELECT 1 FROM risk_analysis_threat
+                            WHERE risk_analysis = $1 AND module = $2 AND threat = $3
+                        ) AS "exists!"
+                        "#,
+                        dst,
+                        module,
+                        threat,
+                    )
+                        .fetch_one(&mut *tx)
+                        .await?
+                        == false
+                }
+                (Some(module), None) => {
+                    sqlx::query_scalar!(
+                        r#"
+                        SELECT EXISTS(
+                            SELECT 1 FROM risk_analysis_module
+                            WHERE risk_analysis = $1 AND module = $2
+                        ) AS "exists!"
+                        "#,
+                        dst,
+                        module,
+                    )
+                        .fetch_one(&mut *tx)
+                        .await?
+                        == false
+                }
+                (None, Some(threat)) => {
+                    sqlx::query_scalar!(
+                        r#"
+                        SELECT EXISTS(
+                            SELECT 1 FROM risk_analysis_threat
+                            WHERE risk_analysis = $1 AND threat = $2
+                        ) AS "exists!"
+                        "#,
+                        dst,
+                        threat,
+                    )
+                        .fetch_one(&mut *tx)
+                        .await?
+                        == false
+                }
+                (None, None) => false,
+            };
+
+            if skip {
+                continue;
+            }
+
+            let new_id = sqlx::query_scalar!(
+                r#"
+                INSERT INTO risk_treatment (risk_analysis, module, threat, treatment, description)
+                VALUES ($1, $2, $3, $4::risk_treatment_type, $5)
+                RETURNING id
+                "#,
+                dst,
+                t.module,
+                t.threat,
+                t.treatment as RiskTreatmentType,
+                t.description,
+            )
+                .fetch_one(&mut *tx)
+                .await?;
+
+            sqlx::query!(
+                r#"
+                INSERT INTO risk_treatment_requirement (risk_treatment, requirement)
+                SELECT $1, rtr.requirement
+                FROM risk_treatment_requirement rtr
+                WHERE rtr.risk_treatment = $2
+                "#,
+                new_id,
+                t.id,
+            )
+                .execute(&mut *tx)
+                .await?;
+
+            sqlx::query!(
+                r#"
+                INSERT INTO risk_treatment_security_measure (risk_treatment, security_measure)
+                SELECT $1, rtsm.security_measure
+                FROM risk_treatment_security_measure rtsm
+                WHERE rtsm.risk_treatment = $2
+                "#,
+                new_id,
+                t.id,
+            )
+                .execute(&mut *tx)
+                .await?;
+        }
+
+        Ok(())
+    }
+
 }
