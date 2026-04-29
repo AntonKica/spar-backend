@@ -62,6 +62,62 @@ async fn create_assets(tx: &mut PgConnection) {
     }).await.unwrap();
 }
 
+#[derive(Clone)]
+struct TestRiskTreatments {
+    pub avoid: String,
+    pub treatment_encryption: String,
+    pub treatment_password: String,
+    pub treatment_nda: String,
+    pub treatment_outsource: String,
+    pub treatment_guidelines: String,
+    pub treatment_training: String,
+}
+async fn create_treatments(tx: &mut PgConnection) -> TestRiskTreatments {
+    let avoid = SecurityMeasureService::create(&mut *tx, SecurityMeasureCreate {
+        treatment: RiskTreatmentType::Avoid,
+        description: "Presunúť do bezprašných priestorov.".to_string(),
+    }).await.unwrap();
+
+    let treatment_encryption = SecurityMeasureService::create(&mut *tx, SecurityMeasureCreate {
+        treatment: RiskTreatmentType::Reduce,
+        description: "Zavedenie šifrovania diskov a prenosných médií.".to_string(),
+    }).await.unwrap();
+    let treatment_password = SecurityMeasureService::create(&mut *tx, SecurityMeasureCreate {
+        treatment: RiskTreatmentType::Reduce,
+        description: "Zriadenie patričná politiky hesiel, ktorá zabezpečí silnú správu hesiel.".to_string(),
+    }).await.unwrap();
+
+    let treatment_nda = SecurityMeasureService::create(&mut *tx, SecurityMeasureCreate {
+        treatment: RiskTreatmentType::Reduce,
+        description: "Zamestnanci sú zaviazaní podpisovať NDA".to_string(),
+    }).await.unwrap();
+
+    let treatment_outsource = SecurityMeasureService::create(&mut *tx, SecurityMeasureCreate {
+        treatment: RiskTreatmentType::Transfer,
+        description: "Dodatočné kapacity sú dodané dodávateľom poskytujúci dodatočný personál.".to_string(),
+    }).await.unwrap();
+
+
+    let treatment_guidelines = SecurityMeasureService::create(&mut *tx, SecurityMeasureCreate {
+        treatment: RiskTreatmentType::Reduce,
+        description: "Organizácia publikuje a aktualizuje potrebné bezpečnostné návody.".to_string(),
+    }).await.unwrap();
+    let treatment_training = SecurityMeasureService::create(&mut *tx, SecurityMeasureCreate {
+        treatment: RiskTreatmentType::Reduce,
+        description: "Zamestnanci budú každoročné trénovaný bezpečnostnými workshopmi.".to_string(),
+    }).await.unwrap();
+
+    TestRiskTreatments {
+        avoid,
+        treatment_encryption,
+        treatment_password,
+        treatment_nda,
+        treatment_outsource,
+        treatment_guidelines,
+        treatment_training,
+    }
+}
+
 #[tokio::test]
 async fn create_scenarios() {
     let config = AppConfig::from_env();
@@ -70,12 +126,13 @@ async fn create_scenarios() {
 
     clear_database(&mut *tx).await;
     create_assets(&mut *tx).await;
+    let treatments = create_treatments(&mut *tx).await;
 
     create_scenario_threat_identification(&mut *tx).await;
     create_scenario_risk_classification(&mut *tx).await;
-    create_scenario_risk_treatment(&mut *tx).await;
-    create_scenario_it_grundschutz_check(&mut *tx).await;
-    create_scenario_completed(&mut *tx).await;
+    create_scenario_risk_treatment(&mut *tx, treatments.clone()).await;
+    create_scenario_it_grundschutz_check(&mut *tx, treatments.clone()).await;
+    create_scenario_completed(&mut *tx, treatments.clone()).await;
 
     tx.commit().await.unwrap();
 }
@@ -104,57 +161,26 @@ async fn create_scenario_risk_classification(tx: &mut PgConnection) -> String {
     ra
 }
 
-async fn create_scenario_risk_treatment(tx: &mut PgConnection) -> String {
+async fn create_scenario_risk_treatment(tx: &mut PgConnection, risk_treatments: TestRiskTreatments) -> String {
     let ra = create_scenario_risk_classification(&mut *tx).await;
     RiskAnalysisService::complete_step(&mut *tx, ra.clone(), RiskAnalysisState::RiskClassification).await.unwrap();
 
-    let avoid = SecurityMeasureService::create(&mut *tx, SecurityMeasureCreate {
-        treatment: RiskTreatmentType::Avoid,
-        description: "Moved to dust-free compartments".to_string(),
-    }).await.unwrap();
-    RiskAnalysisService::sync_threat_risk_treatment(&mut *tx, ra.clone(), "G-04".to_string(), RiskTreatmentType::Avoid, vec![avoid]).await.unwrap();
-
-    let treatment_encryption = SecurityMeasureService::create(&mut *tx, SecurityMeasureCreate {
-        treatment: RiskTreatmentType::Reduce,
-        description: "The additional capabilities are drawn from subcontractor providing necessary personel.".to_string(),
-    }).await.unwrap();
-    let treatment_password = SecurityMeasureService::create(&mut *tx, SecurityMeasureCreate {
-        treatment: RiskTreatmentType::Reduce,
-        description: "Proper password policy is enacted providing strong password management.".to_string(),
-    }).await.unwrap();
-    RiskAnalysisService::sync_module_threat_risk_treatment(&mut *tx, ra.clone(), "SYS-3-1".to_string(), "G-14".to_string(), RiskTreatmentType::Reduce, vec![treatment_encryption, treatment_password]).await.unwrap();
+    RiskAnalysisService::sync_threat_risk_treatment(&mut *tx, ra.clone(), "G-04".to_string(), RiskTreatmentType::Avoid, vec![risk_treatments.avoid]).await.unwrap();
+    RiskAnalysisService::sync_module_threat_risk_treatment(&mut *tx, ra.clone(), "SYS-3-1".to_string(), "G-14".to_string(), RiskTreatmentType::Reduce, vec![risk_treatments.treatment_encryption, risk_treatments.treatment_password]).await.unwrap();
 
     RiskAnalysisService::sync_risk_treatment_requirement_for_module(&mut *tx, ra.clone(), "ORP-2".to_string(), vec!["ORP-2-A1".to_string(), "ORP-2-A7".to_string()]).await.unwrap();
     RiskAnalysisService::sync_risk_treatment_requirement_for_module(&mut *tx, ra.clone(), "SYS-3-1".to_string(), vec!["SYS-3-1-A13".to_string(), "SYS-3-1-A6".to_string()]).await.unwrap();
-    let treatment_nda = SecurityMeasureService::create(&mut *tx, SecurityMeasureCreate {
-        treatment: RiskTreatmentType::Reduce,
-        description: "Emplyee are now obliged to sign a NDA".to_string(),
-    }).await.unwrap();
-    RiskAnalysisService::sync_module_threat_risk_treatment(&mut *tx, ra.clone(), "ORP-2".to_string(), "G-14".to_string(), RiskTreatmentType::Reduce, vec![treatment_nda]).await.unwrap();
+    RiskAnalysisService::sync_module_threat_risk_treatment(&mut *tx, ra.clone(), "ORP-2".to_string(), "G-14".to_string(), RiskTreatmentType::Reduce, vec![risk_treatments.treatment_nda]).await.unwrap();
+    RiskAnalysisService::sync_module_threat_risk_treatment(&mut *tx, ra.clone(), "ORP-2".to_string(), "G-33".to_string(), RiskTreatmentType::Transfer, vec![risk_treatments.treatment_outsource]).await.unwrap();
 
-    let treatment_outsource = SecurityMeasureService::create(&mut *tx, SecurityMeasureCreate {
-        treatment: RiskTreatmentType::Transfer,
-        description: "The additional capabilities are drawn from subcontractor providing necessary personnel.".to_string(),
-    }).await.unwrap();
-    RiskAnalysisService::sync_module_threat_risk_treatment(&mut *tx, ra.clone(), "ORP-2".to_string(), "G-33".to_string(), RiskTreatmentType::Transfer, vec![treatment_outsource]).await.unwrap();
-
-
-    let treatment_guidelines = SecurityMeasureService::create(&mut *tx, SecurityMeasureCreate {
-        treatment: RiskTreatmentType::Reduce,
-        description: "The organisation will publish and update necessary security guidelines.".to_string(),
-    }).await.unwrap();
-    let treatment_training = SecurityMeasureService::create(&mut *tx, SecurityMeasureCreate {
-        treatment: RiskTreatmentType::Reduce,
-        description: "The employees will enroll in yearly security training workshops.".to_string(),
-    }).await.unwrap();
-    RiskAnalysisService::sync_org_risk_treatment(&mut *tx, ra.clone(), vec![treatment_guidelines, treatment_training]).await.unwrap();
+    RiskAnalysisService::sync_org_risk_treatment(&mut *tx, ra.clone(), vec![risk_treatments.treatment_guidelines, risk_treatments.treatment_training]).await.unwrap();
 
     ra
 }
 
 
-async fn create_scenario_it_grundschutz_check(tx: &mut PgConnection) -> String {
-    let ra = create_scenario_risk_treatment(&mut *tx).await;
+async fn create_scenario_it_grundschutz_check(tx: &mut PgConnection, risk_treatments: TestRiskTreatments) -> String {
+    let ra = create_scenario_risk_treatment(&mut *tx, risk_treatments.clone()).await;
     RiskAnalysisService::complete_step(&mut *tx, ra.clone(), RiskAnalysisState::RiskTreatment).await.unwrap();
 
     let full_assessment = ItGrundschutCheckService::full_assessment(&mut *tx, ra.clone()).await.unwrap();
@@ -162,18 +188,18 @@ async fn create_scenario_it_grundschutz_check(tx: &mut PgConnection) -> String {
     ItGrundschutCheckService::update_security_measure_assessment(&mut *tx, full_assessment.org.as_ref().unwrap().items[0].id,
                                                                  RiskAssessmentUpdateModel{
                                                                      status: ImplementationStatus::Full,
-                                                                     evaluation: "The security guidelines material are now accessible to every employee.".to_string()
+                                                                     evaluation: "Materiály týkajúce sa bezpečnostných pokynov sú teraz k dispozícii všetkým zamestnancom.".to_string()
                                                                  }).await.unwrap();
     ItGrundschutCheckService::update_security_measure_assessment(&mut *tx, full_assessment.org.as_ref().unwrap().items[1].id,
                                                                  RiskAssessmentUpdateModel{
                                                                      status: ImplementationStatus::None,
-                                                                     evaluation: "We have failed in search of an expert in security training.".to_string()
+                                                                     evaluation: "Nepodarilo sa nám nájsť odborníka na bezpečnostné školenia.".to_string()
                                                                  }).await.unwrap();
 
     ItGrundschutCheckService::update_security_measure_assessment(&mut *tx, full_assessment.threats[0].items[0].id,
                                                                  RiskAssessmentUpdateModel{
                                                                      status: ImplementationStatus::Partial,
-                                                                     evaluation: "We have failed in search of an expert in security training.".to_string()
+                                                                     evaluation: "Zamestnanci a priestory boli presunuté to čistejších miestností, ešte sme nezaobstarali čističku vzduchu.".to_string()
                                                                  }).await.unwrap();
 
     ItGrundschutCheckService::update_requirement_assessment(&mut *tx, full_assessment.modules[0].items[0].id, RiskAssessmentUpdateModel{ status: ImplementationStatus::Full, evaluation: "".to_string() }).await.unwrap();
@@ -188,8 +214,8 @@ async fn create_scenario_it_grundschutz_check(tx: &mut PgConnection) -> String {
     ra
 }
 
-async fn create_scenario_completed(tx: &mut PgConnection) -> String {
-    let ra = create_scenario_it_grundschutz_check(&mut *tx).await;
+async fn create_scenario_completed(tx: &mut PgConnection, risk_treatments: TestRiskTreatments) -> String {
+    let ra = create_scenario_it_grundschutz_check(&mut *tx, risk_treatments.clone()).await;
     RiskAnalysisService::complete_step(&mut *tx, ra.clone(), RiskAnalysisState::ItGrundschutzCheck).await.unwrap();
 
     ra
