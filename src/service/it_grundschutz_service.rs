@@ -1,5 +1,5 @@
 use crate::enums::ThreatCategory;
-use crate::model::it_grundchutz_models::{ItGrundschutzModuleRequirement, ThreatModel};
+use crate::model::it_grundchutz_models::{ItGrundschutzModule, ItGrundschutzModuleRequirement, ThreatModel};
 use crate::service::ApiResult;
 use actix_web::{get, web, web::Json, web::Path};
 use sqlx::{Pool, Postgres};
@@ -7,6 +7,20 @@ use sqlx::{Pool, Postgres};
 pub struct ItGrundschutzService;
 
 impl ItGrundschutzService {
+    pub async fn list(db: &Pool<Postgres>) -> ApiResult<Vec<ItGrundschutzModule>> {
+        let rows = sqlx::query_as!(
+            ItGrundschutzModule,
+            r#"
+            SELECT code, name, description
+            FROM it_grundschutz_module
+            ORDER BY code
+            "#
+        )
+            .fetch_all(db)
+            .await?;
+
+        Ok(rows)
+    }
     pub async fn threats_by_module(
         db: &Pool<Postgres>,
         module_code: String,

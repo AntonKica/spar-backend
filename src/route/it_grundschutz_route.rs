@@ -1,3 +1,4 @@
+use crate::model::it_grundchutz_models::ItGrundschutzModule;
 use crate::model::it_grundchutz_models::ItGrundschutzModuleRequirement;
 use crate::model::it_grundchutz_models::ThreatModel;
 use crate::configuration::AppState;
@@ -17,10 +18,25 @@ impl GeneralRoute for ItGrundschutzRoute {
     fn configure(cfg: &mut ServiceConfig) {
         cfg.service(
             scope("/it-grundschutz")
+                .service(list_modules)
                 .service(threats_by_module)
                 .service(requirements_by_module)
         );
     }
+}
+
+#[utoipa::path(
+    responses(
+        (status = 200, description = "List all modules", body = Vec<ItGrundschutzModule>),
+        (status = 500, description = "Internal server error", body = ErrorResponse)
+    )
+)]
+#[get("/module")]
+async fn list_modules(
+    state: web::Data<AppState>,
+) -> ApiResult<Json<Vec<ItGrundschutzModule>>> {
+    let modules = ItGrundschutzService::list(&state.db).await?;
+    Ok(Json(modules))
 }
 #[utoipa::path(
     responses(

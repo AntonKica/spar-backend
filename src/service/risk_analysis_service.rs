@@ -12,7 +12,7 @@ use crate::service::security_measure_service::SecurityMeasure;
 pub struct RiskAnalysisModel {
     pub code: String,
     pub state: RiskAnalysisState,
-    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub created_at: chrono::NaiveDate,
 }
 
 #[derive(Debug, Clone, FromRow, serde::Serialize, utoipa::ToSchema)]
@@ -103,7 +103,7 @@ impl RiskAnalysisService {
             INSERT INTO risk_analysis (state)
             VALUES ($1)
             RETURNING   code,
-                        created_at AS "created_at!: chrono::DateTime<chrono::Utc>",
+                        created_at AS "created_at!: chrono::NaiveDate",
                         state AS "state!: RiskAnalysisState"
             "#,
             RiskAnalysisState::ThreatIdentification as RiskAnalysisState,
@@ -123,7 +123,7 @@ impl RiskAnalysisService {
             r#"
             SELECT
                 code,
-                created_at AS "created_at!: chrono::DateTime<chrono::Utc>",
+                created_at AS "created_at!: chrono::NaiveDate",
                 state AS "state!: RiskAnalysisState"
             FROM risk_analysis
             ORDER BY code DESC
@@ -141,7 +141,7 @@ impl RiskAnalysisService {
             r#"
             SELECT
                 code,
-                created_at AS "created_at!: chrono::DateTime<chrono::Utc>",
+                created_at AS "created_at!: chrono::NaiveDate",
                 state AS "state!: RiskAnalysisState"
             FROM risk_analysis
             WHERE code = $1
