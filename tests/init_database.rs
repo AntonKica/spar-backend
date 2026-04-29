@@ -27,38 +27,38 @@ async fn clear_database(tx: &mut PgConnection) {
 
 async fn create_assets(tx: &mut PgConnection) {
     let workplace_laptop = AssetService::create(&mut *tx, AssetCreateModel {
-        name: "Workplace laptop".to_string(),
-        description: "General laptop for employees enabling remote work".to_string(),
+        name: "Všeobecný notebook".to_string(),
+        description: "Notebook pre zamestnancov na umožnenie práce z domu".to_string(),
         module: "SYS-3-1".to_string(),
         confidentiality_protection_requirement: ProtectionRequirement::High,
         integrity_protection_requirement: ProtectionRequirement::Low,
         availability_protection_requirement: ProtectionRequirement::High,
-        confidentiality_protection_requirement_description: "Provides an access to confidential information data and systems.".to_string(),
+        confidentiality_protection_requirement_description: "Umožňuje prístup k dôverným informáciám a systémom".to_string(),
         integrity_protection_requirement_description: "".to_string(),
-        availability_protection_requirement_description: "High availability is integral to a timely reaction.".to_string(),
+        availability_protection_requirement_description: "Vysoká dostupnosť je integrálna na včasné riešenie problémov.".to_string(),
     }).await.unwrap();
     let admin_laptop = AssetService::create(&mut *tx, AssetCreateModel {
-        name: "Administrator Laptop".to_string(),
-        description: "Administrator laptop for server admins for remote server management".to_string(),
+        name: "Administrátorský notebook".to_string(),
+        description: "Notebook pre serverových administrátorov umožňujúci vzdialenú správu serverov pri riešení problémov".to_string(),
         module: "SYS-3-1".to_string(),
         confidentiality_protection_requirement: ProtectionRequirement::VeryHigh,
         integrity_protection_requirement: ProtectionRequirement::Low,
         availability_protection_requirement: ProtectionRequirement::VeryHigh,
-        confidentiality_protection_requirement_description: "Provides an administrative access to confidential information data and systems.".to_string(),
+        confidentiality_protection_requirement_description: "Umožňuje privilegovaný administrátorský prístup do systémov s dôvernými informáciami.".to_string(),
         integrity_protection_requirement_description: "".to_string(),
-        availability_protection_requirement_description: "Very high availability is integral for a quick response.".to_string(),
+        availability_protection_requirement_description: "Vysoká dostupnosť je integrálna na včasné riešenie problémov.".to_string(),
     }).await.unwrap();
 
     let employees = AssetService::create(&mut *tx, AssetCreateModel {
-        name: "All the employees".to_string(),
-        description: "All the employees of our organization".to_string(),
+        name: "Všetci zamesntanci".to_string(),
+        description: "Všetci zamesntanci našej organizácie".to_string(),
         module: "ORP-2".to_string(),
         confidentiality_protection_requirement: ProtectionRequirement::High,
         integrity_protection_requirement: ProtectionRequirement::Low,
         availability_protection_requirement: ProtectionRequirement::High,
-        confidentiality_protection_requirement_description: "Emplyees are in possession of high-value know-how information.".to_string(),
+        confidentiality_protection_requirement_description: "Zamestnanci majú znalosť vysokohodnotného know-how.".to_string(),
         integrity_protection_requirement_description: "".to_string(),
-        availability_protection_requirement_description: "Availability of employees is necessary for a timely reaction.".to_string(),
+        availability_protection_requirement_description: "Vysoká dostupnosť zamestnancov je potrebná pre riešenie problémov.".to_string(),
     }).await.unwrap();
 }
 
@@ -86,7 +86,7 @@ async fn create_scenario_threat_identification(tx: &mut PgConnection) -> String 
     RiskAnalysisService::sync_threats(&mut *tx, ra.clone(), "ORP-2".to_string(), vec!["G-04".to_string(), "G-14".to_string(), "G-33".to_string()]).await.unwrap();
 
     RiskAnalysisService::set_module_threat_identification_done(&mut *tx, ra.clone(), "SYS-3-1".to_string()).await.unwrap();
-    RiskAnalysisService::set_module_threat_identification_done(&mut *tx, ra.clone(), "ORP-2".to_string()).await.unwrap();
+    //RiskAnalysisService::set_module_threat_identification_done(&mut *tx, ra.clone(), "ORP-2".to_string()).await.unwrap();
 
     ra
 }
