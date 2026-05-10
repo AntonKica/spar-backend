@@ -1,13 +1,13 @@
-use sqlx::PgConnection;
 use spar_backend::configuration::AppConfig;
 use spar_backend::create_connection;
 use spar_backend::enums::{Impact, ImplementationStatus, Likelihood, ProtectionRequirement, RiskAnalysisState, RiskTreatmentType};
 use spar_backend::model::asset_model::AssetCreateModel;
 use spar_backend::service::asset_service::AssetService;
-use spar_backend::service::{ApiResult, GeneralService};
 use spar_backend::service::it_grundschutz_check_service::ItGrundschutCheckService;
 use spar_backend::service::risk_analysis_service::{RiskAnalysisService, RiskAssessmentUpdateModel, RiskClassificationUpdate};
 use spar_backend::service::security_measure_service::{SecurityMeasureCreate, SecurityMeasureService};
+use spar_backend::service::GeneralService;
+use sqlx::PgConnection;
 
 async fn clear_database(tx: &mut PgConnection) {
     sqlx::query(r#"TRUNCATE TABLE risk_treatment CASCADE"#).execute(&mut *tx).await.unwrap();
@@ -151,7 +151,9 @@ async fn create_scenario_threat_identification(tx: &mut PgConnection) -> String 
 async fn create_scenario_risk_classification(tx: &mut PgConnection) -> String {
     let ra = create_scenario_threat_identification(&mut *tx).await;
     RiskAnalysisService::complete_step(&mut *tx, ra.clone(), RiskAnalysisState::ThreatIdentification).await.unwrap();
-    RiskAnalysisService::update_risk_classification(&mut *tx, ra.clone(), "SYS-3-1".to_string(), "G-04".to_string(), RiskClassificationUpdate{likelihood: Likelihood::Often, impact: Impact::Limited, evaluation: "".to_string() }).await.unwrap();
+    RiskAnalysisService::update_risk_classification(&mut *tx, ra.clone(), "SYS-3-1".to_string(), "G-04".to_string(), RiskClassificationUpdate{likelihood: Likelihood::Often, impact: Impact::Limited,
+        evaluation: "Zariadenia zamestnancov sa nachádzajú v prašných priestoroch, dopad je obmedzený. Zaprášené zariadenie sa z prehriatia vypne, no vzhľadom na krátky výpadok a nízku stratu dát dopad zvládame, aj keď je neželaný.".to_string() })
+        .await.unwrap();
     RiskAnalysisService::update_risk_classification(&mut *tx, ra.clone(), "SYS-3-1".to_string(), "G-25".to_string(), RiskClassificationUpdate{likelihood: Likelihood::Often, impact: Impact::Significant, evaluation: "".to_string() }).await.unwrap();
     RiskAnalysisService::update_risk_classification(&mut *tx, ra.clone(), "SYS-3-1".to_string(), "G-26".to_string(), RiskClassificationUpdate{likelihood: Likelihood::Often, impact: Impact::Limited, evaluation: "".to_string() }).await.unwrap();
 
